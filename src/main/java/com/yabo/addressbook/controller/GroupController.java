@@ -4,6 +4,10 @@ import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.GroupService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/groups")
+@Tag(name = "分组管理", description = "联系人分组的增删改查操作")
 public class GroupController {
 
     private final GroupService groupService;
@@ -29,27 +34,35 @@ public class GroupController {
     }
 
     @GetMapping
+    @Operation(summary = "获取分组列表", description = "获取当前用户的所有分组")
+    @ApiResponse(responseCode = "200", description = "获取成功")
     public ApiResult<?> listGroups() {
         Long userId = getCurrentUserId();
         return ApiResult.success(groupService.listGroups(userId));
     }
 
     @PostMapping
-    public ApiResult<?> createGroup(@RequestParam String name) {
+    @Operation(summary = "创建分组", description = "为当前用户创建一个新的联系人分组")
+    @ApiResponse(responseCode = "200", description = "创建成功")
+    public ApiResult<?> createGroup(@Parameter(description = "分组名称") @RequestParam String name) {
         Long userId = getCurrentUserId();
         groupService.createGroup(userId, name);
         return ApiResult.success();
     }
 
     @PutMapping("/{id}")
-    public ApiResult<?> updateGroup(@PathVariable Long id, @RequestParam String name) {
+    @Operation(summary = "更新分组", description = "更新指定分组的名称")
+    @ApiResponse(responseCode = "200", description = "更新成功")
+    public ApiResult<?> updateGroup(@Parameter(description = "分组ID") @PathVariable Long id, @Parameter(description = "分组名称") @RequestParam String name) {
         Long userId = getCurrentUserId();
         groupService.updateGroup(id, userId, name);
         return ApiResult.success();
     }
 
     @DeleteMapping("/{id}")
-    public ApiResult<?> deleteGroup(@PathVariable Long id) {
+    @Operation(summary = "删除分组", description = "删除指定的联系人分组")
+    @ApiResponse(responseCode = "200", description = "删除成功")
+    public ApiResult<?> deleteGroup(@Parameter(description = "分组ID") @PathVariable Long id) {
         Long userId = getCurrentUserId();
         groupService.deleteGroup(id, userId);
         return ApiResult.success();

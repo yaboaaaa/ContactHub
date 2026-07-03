@@ -11,6 +11,10 @@ import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.ContactService;
 import com.yabo.addressbook.service.GroupService;
 import com.yabo.addressbook.util.ExcelUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -33,6 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Controller
 @RequestMapping("/contacts")
+@Tag(name = "联系人管理", description = "联系人的增删改查及导入导出操作")
 public class ContactController {
 
     private static final Logger log = LoggerFactory.getLogger(ContactController.class);
@@ -64,6 +69,8 @@ public class ContactController {
 
     @GetMapping("/data")
     @ResponseBody
+    @Operation(summary = "获取联系人列表", description = "支持按关键词、电话、地区、公司等多条件分页搜索联系人")
+    @ApiResponse(responseCode = "200", description = "获取成功")
     public ApiResult<PageDTO<?>> getContactsData(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String phone,
@@ -125,6 +132,8 @@ public class ContactController {
 
     @GetMapping("/recycle/data")
     @ResponseBody
+    @Operation(summary = "获取回收站列表", description = "分页获取已软删除的联系人")
+    @ApiResponse(responseCode = "200", description = "获取成功")
     public ApiResult<PageDTO<?>> getRecycleData(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -170,7 +179,9 @@ public class ContactController {
 
     @PutMapping("/{id}/restore")
     @ResponseBody
-    public ApiResult<Void> restoreContact(@PathVariable Long id) {
+    @Operation(summary = "恢复联系人", description = "从回收站恢复指定联系人")
+    @ApiResponse(responseCode = "200", description = "恢复成功")
+    public ApiResult<Void> restoreContact(@Parameter(description = "联系人ID") @PathVariable Long id) {
         Long userId = getCurrentUserId();
         contactService.restore(id, userId);
         return ApiResult.success();
@@ -178,7 +189,9 @@ public class ContactController {
 
     @DeleteMapping("/{id}/permanent")
     @ResponseBody
-    public ApiResult<Void> permanentDeleteContact(@PathVariable Long id) {
+    @Operation(summary = "永久删除联系人", description = "彻底删除指定联系人（不可恢复）")
+    @ApiResponse(responseCode = "200", description = "删除成功")
+    public ApiResult<Void> permanentDeleteContact(@Parameter(description = "联系人ID") @PathVariable Long id) {
         Long userId = getCurrentUserId();
         contactService.permanentDelete(id, userId);
         return ApiResult.success();
@@ -186,6 +199,8 @@ public class ContactController {
 
     @DeleteMapping("/recycle")
     @ResponseBody
+    @Operation(summary = "清空回收站", description = "永久删除回收站中所有联系人的数据")
+    @ApiResponse(responseCode = "200", description = "清空成功")
     public ApiResult<Void> emptyRecycleBin() {
         Long userId = getCurrentUserId();
         contactService.emptyRecycleBin(userId);
@@ -194,6 +209,8 @@ public class ContactController {
 
     @PostMapping
     @ResponseBody
+    @Operation(summary = "创建联系人", description = "新增一个联系人")
+    @ApiResponse(responseCode = "200", description = "创建成功")
     public ApiResult<Void> createContact(@Valid @RequestBody ContactDTO contactDTO) {
         Long userId = getCurrentUserId();
         contactService.createContact(contactDTO, userId);
@@ -221,7 +238,9 @@ public class ContactController {
 
     @PostMapping("/import")
     @ResponseBody
-    public ApiResult<ImportResult> importContacts(@RequestParam("file") MultipartFile file) {
+    @Operation(summary = "导入联系人", description = "通过Excel文件批量导入联系人")
+    @ApiResponse(responseCode = "200", description = "导入成功")
+    public ApiResult<ImportResult> importContacts(@Parameter(description = "Excel文件") @RequestParam("file") MultipartFile file) {
         Long userId = getCurrentUserId();
         ImportResult importResult = ExcelUtil.importContacts(
                 file, userId, userRepository, contactGroupRepository, contactRepository);
@@ -230,7 +249,9 @@ public class ContactController {
 
     @PutMapping("/{id}")
     @ResponseBody
-    public ApiResult<Void> updateContact(@PathVariable Long id,
+    @Operation(summary = "更新联系人", description = "更新指定联系人的信息")
+    @ApiResponse(responseCode = "200", description = "更新成功")
+    public ApiResult<Void> updateContact(@Parameter(description = "联系人ID") @PathVariable Long id,
                                          @Valid @RequestBody ContactDTO contactDTO) {
         Long userId = getCurrentUserId();
         contactService.updateContact(id, contactDTO, userId);
@@ -239,7 +260,9 @@ public class ContactController {
 
     @DeleteMapping("/{id}")
     @ResponseBody
-    public ApiResult<Void> deleteContact(@PathVariable Long id) {
+    @Operation(summary = "删除联系人", description = "将联系人移至回收站（软删除）")
+    @ApiResponse(responseCode = "200", description = "删除成功")
+    public ApiResult<Void> deleteContact(@Parameter(description = "联系人ID") @PathVariable Long id) {
         Long userId = getCurrentUserId();
         contactService.softDelete(id, userId);
         return ApiResult.success();

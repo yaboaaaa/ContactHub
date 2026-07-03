@@ -13,3 +13,10 @@ spring:
 
   thymeleaf:
     cache: true
+
+  # Disable Swagger in production
+  springdoc:
+    api-docs:
+      enabled: false
+    swagger-ui:
+      enabled: false
