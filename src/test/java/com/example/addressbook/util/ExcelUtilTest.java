@@ -26,6 +26,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.domain.Specification;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -63,7 +65,7 @@ class ExcelUtilTest {
         }
 
         if (rowData.length > 0) {
-            String[] values = rowData[0].split(",");
+            String[] values = rowData[0].split(",", -1);
             Row row = sheet.createRow(1);
             for (int i = 0; i < values.length && i < headers.length; i++) {
                 row.createCell(i).setCellValue(values[i]);
@@ -103,9 +105,11 @@ class ExcelUtilTest {
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
         doAnswer(invocation -> {
             byte[] buf = invocation.getArgument(0);
-            outputStream.write(buf);
+            int offset = invocation.getArgument(1);
+            int len = invocation.getArgument(2);
+            outputStream.write(buf, offset, len);
             return null;
-        }).when(servletOutputStream).write(any(byte[].class));
+        }).when(servletOutputStream).write(any(byte[].class), anyInt(), anyInt());
 
         when(response.getOutputStream()).thenReturn(servletOutputStream);
 
@@ -147,13 +151,12 @@ class ExcelUtilTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(workbookBytes));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(contactGroupRepository.findByUserIdAndIsDefaultTrue(userId)).thenReturn(Optional.of(defaultGroup));
+        when(contactGroupRepository.findByUserIdAndName(eq(userId), eq("同事"))).thenReturn(Optional.of(defaultGroup));
 
         Contact savedContact = new Contact();
         savedContact.setId(1L);
         savedContact.setName("张三");
         when(contactRepository.save(any(Contact.class))).thenReturn(savedContact);
-        when(contactRepository.count(any())).thenReturn(0L);
 
         ImportResult result = ExcelUtil.importContacts(file, userId, userRepository, contactGroupRepository, contactRepository);
 
@@ -194,7 +197,7 @@ class ExcelUtilTest {
         defaultGroup.setName("默认分组");
         defaultGroup.setIsDefault(true);
 
-        byte[] workbookBytes = createTestWorkbook("李四,女,13900139000,,,,,,,,,1995-05-15,,新分组");
+        byte[] workbookBytes = createTestWorkbook("李四,女,13900139000,,,,,,,,1995-05-15,,新分组");
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -213,7 +216,6 @@ class ExcelUtilTest {
         savedContact.setId(1L);
         savedContact.setName("李四");
         when(contactRepository.save(any(Contact.class))).thenReturn(savedContact);
-        when(contactRepository.count(any())).thenReturn(0L);
 
         ImportResult result = ExcelUtil.importContacts(file, userId, userRepository, contactGroupRepository, contactRepository);
 

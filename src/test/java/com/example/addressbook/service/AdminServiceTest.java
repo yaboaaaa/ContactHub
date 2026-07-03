@@ -157,6 +157,7 @@ class AdminServiceTest {
         user.setRole("USER");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         User toggled1 = adminService.toggleEnabled(1L);
         assertThat(toggled1.getEnabled()).isFalse();

@@ -6,16 +6,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RegisterController.class)
+@WithMockUser
 class RegisterControllerTest {
 
     @Autowired
@@ -37,6 +40,7 @@ class RegisterControllerTest {
                 .thenReturn(null);
 
         mockMvc.perform(post("/register")
+                        .with(csrf())
                         .param("username", "newuser")
                         .param("password", "password123")
                         .param("email", "test@example.com"))
@@ -50,6 +54,7 @@ class RegisterControllerTest {
                 .when(userService).register(anyString(), anyString(), anyString());
 
         mockMvc.perform(post("/register")
+                        .with(csrf())
                         .param("username", "existing")
                         .param("password", "password123")
                         .param("email", "test@example.com"))
@@ -64,6 +69,7 @@ class RegisterControllerTest {
                 .thenReturn(null);
 
         mockMvc.perform(post("/register")
+                        .with(csrf())
                         .param("username", "newuser")
                         .param("password", "password123"))
                 .andExpect(status().is3xxRedirection())

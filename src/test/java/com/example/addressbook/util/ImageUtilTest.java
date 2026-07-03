@@ -76,7 +76,6 @@ class ImageUtilTest {
     void resizeAvatar_shouldRejectNonImageFiles() {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("text/plain");
-        when(file.getSize()).thenReturn(1000L);
 
         assertThatThrownBy(() -> ImageUtil.resizeAvatar(file))
                 .isInstanceOf(BusinessException.class)
@@ -98,7 +97,6 @@ class ImageUtilTest {
     void resizeAvatar_shouldRejectNullContentType() {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn(null);
-        when(file.getSize()).thenReturn(1000L);
 
         assertThatThrownBy(() -> ImageUtil.resizeAvatar(file))
                 .isInstanceOf(BusinessException.class)

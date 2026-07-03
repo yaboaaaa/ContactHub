@@ -11,6 +11,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -42,13 +47,25 @@ class AvatarServiceTest {
         user.setRole("USER");
     }
 
+    /**
+     * Create a valid JPEG image as byte array for testing.
+     */
+    private byte[] createValidJpegBytes() throws IOException {
+        BufferedImage image = new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpg", baos);
+        return baos.toByteArray();
+    }
+
     @Test
-    void uploadAvatar_shouldResizeAndSaveAvatar() {
-        byte[] avatarBytes = new byte[]{1, 2, 3, 4, 5};
+    void uploadAvatar_shouldResizeAndSaveAvatar() throws Exception {
+        byte[] avatarBytes = createValidJpegBytes();
         String contentType = "image/jpeg";
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn(contentType);
+        when(file.getSize()).thenReturn((long) avatarBytes.length);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(avatarBytes));
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
@@ -59,6 +76,7 @@ class AvatarServiceTest {
         User savedUser = userCaptor.getValue();
 
         assertThat(savedUser.getAvatarData()).isNotNull();
+        assertThat(savedUser.getAvatarData()).isNotEmpty();
         assertThat(savedUser.getAvatarContentType()).isEqualTo(contentType);
         assertThat(savedUser.getUpdatedAt()).isNotNull();
     }

@@ -49,11 +49,13 @@ public class ImageUtil {
             int x = (width - cropSize) / 2;
             int y = (height - cropSize) / 2;
 
+            String format = contentType.contains("png") ? "png" : "jpg";
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Thumbnails.of(originalImage)
                     .sourceRegion(x, y, cropSize, cropSize)
                     .size(200, 200)
                     .outputQuality(0.8)
+                    .outputFormat(format)
                     .toOutputStream(baos);
 
             return baos.toByteArray();
