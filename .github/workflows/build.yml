@@ -1,0 +1,48 @@
+# ============================================================
+# GitHub Actions Workflow: Build & Push Docker Image to ACR
+# 触发条件：
+#   - push / pull_request 到 main/master 分支 → 运行测试
+#   - push 到 main/master 分支 → 构建并推送 Docker 镜像到阿里云 ACR
+# ============================================================
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  DOCKER_REGISTRY: registry.cn-hangzhou.aliyuncs.com
+  IMAGE_NAME: contacthub
+
+jobs:
+  # ========== Job: 构建并推送 Docker 镜像 ==========
+  build-and-push:
+    runs-on: ubuntu-latest
+    # 仅在 push 到 main/master 时执行（PR 不推送）
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Grant execute permission for scripts
+        run: chmod +x docker/*.sh
+
+      - name: Login to Aliyun Container Registry (ACR)
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: https://${{ env.DOCKER_REGISTRY }}
+          region-id: cn-hangzhou
+          access-key-id: "${{ secrets.ACR_KEY }}"
+          access-key-secret: "${{ secrets.ACR_SECRET }}"
+
+      - name: Build Docker Image
+        run: bash docker/build-docker-image.sh
+        env:
+          DOCKER_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
+
+      - name: Push Docker Image to ACR
+        run: bash docker/push-docker-image.sh
+        env:
+          DOCKER_NAMESPACE: ${{ secrets.ACR_NAMESPACE }}
