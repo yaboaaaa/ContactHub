@@ -28,6 +28,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -219,14 +220,33 @@ class ContactControllerTest {
                 .andExpect(jsonPath("$.code").value(200));
     }
 
+    private byte[] createValidXlsxFile() throws IOException {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("通讯录");
+        Row header = sheet.createRow(0);
+        String[] headers = {"姓名", "性别", "手机", "家庭电话", "工作电话", "邮箱", "单位", "职位",
+                "省", "市", "区", "详细地址", "生日", "备注", "所属分组"};
+        for (int i = 0; i < headers.length; i++) {
+            header.createCell(i).setCellValue(headers[i]);
+        }
+        Row dataRow = sheet.createRow(1);
+        dataRow.createCell(0).setCellValue("测试联系人");
+        dataRow.createCell(2).setCellValue("13800138000");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        workbook.write(baos);
+        workbook.close();
+        return baos.toByteArray();
+    }
+
     @Test
     void importContacts_shouldImportFile() throws Exception {
+        byte[] validXlsxData = createValidXlsxFile();
         MockMultipartFile file = new MockMultipartFile(
                 "file", "contacts.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                new byte[]{1, 2, 3, 4, 5});
+                validXlsxData);
 
-        ImportResult importResult = new ImportResult(2, 0, List.of());
+        ImportResult importResult = new ImportResult(1, 0, List.of());
         when(contactGroupRepository.findByUserIdAndIsDefaultTrue(anyLong()))
                 .thenReturn(Optional.of(defaultGroup));
 

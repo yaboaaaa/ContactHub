@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
 @ControllerAdvice
@@ -18,7 +19,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    public Object handleBusinessException(BusinessException e, HttpServletRequest request) {
+    public @ResponseBody Object handleBusinessException(BusinessException e, HttpServletRequest request) {
         if (isAjaxRequest(request)) {
             return ApiResult.error(e.getCode(), e.getMessage());
         }
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Object handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public @ResponseBody Object handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
         StringBuilder sb = new StringBuilder();
         for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             sb.append(fieldError.getField()).append(": ").append(fieldError.getDefaultMessage()).append("; ");
@@ -45,7 +46,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public Object handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+    public @ResponseBody Object handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
         if (isAjaxRequest(request)) {
             return ApiResult.error(403, "权限不足");
         }
@@ -56,7 +57,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public Object handleException(Exception e, HttpServletRequest request) {
+    public @ResponseBody Object handleException(Exception e, HttpServletRequest request) {
         if (isAjaxRequest(request)) {
             return ApiResult.error(500, "服务器内部错误");
         }

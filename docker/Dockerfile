@@ -18,6 +18,6 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuse
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8087
 
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]

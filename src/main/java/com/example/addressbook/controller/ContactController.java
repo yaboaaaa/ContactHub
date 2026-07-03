@@ -76,9 +76,45 @@ public class ContactController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Long userId = getCurrentUserId();
-        PageDTO<?> pageDTO = new PageDTO<>(contactService.searchContacts(
+        // Force initialization of lazy properties within the service transaction
+        var pageResult = contactService.searchContacts(
                 userId, keyword, phone, province, city, district,
-                company, jobTitle, groupId, page, size));
+                company, jobTitle, groupId, page, size);
+
+        // Convert entities to plain Maps to avoid lazy loading during JSON serialization
+        @SuppressWarnings("unchecked")
+        var dtoContent = (java.util.List<Object>) (java.util.List<?>) pageResult.getContent().stream().map(c -> {
+            var map = new java.util.HashMap<String, Object>();
+            map.put("id", c.getId());
+            map.put("name", c.getName());
+            map.put("gender", c.getGender());
+            map.put("phoneMobile", c.getPhoneMobile());
+            map.put("phoneHome", c.getPhoneHome());
+            map.put("phoneWork", c.getPhoneWork());
+            map.put("email", c.getEmail());
+            map.put("company", c.getCompany());
+            map.put("jobTitle", c.getJobTitle());
+            map.put("province", c.getProvince());
+            map.put("city", c.getCity());
+            map.put("district", c.getDistrict());
+            map.put("addressDetail", c.getAddressDetail());
+            map.put("birthday", c.getBirthday() != null ? c.getBirthday().toString() : null);
+            map.put("notes", c.getNotes());
+            if (c.getGroup() != null) {
+                var groupMap = new java.util.HashMap<String, Object>();
+                groupMap.put("id", c.getGroup().getId());
+                groupMap.put("name", c.getGroup().getName());
+                map.put("group", groupMap);
+            }
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+
+        var pageDTO = new com.example.addressbook.dto.PageDTO<>();
+        pageDTO.setContent(dtoContent);
+        pageDTO.setTotalPages(pageResult.getTotalPages());
+        pageDTO.setTotalElements(pageResult.getTotalElements());
+        pageDTO.setCurrentPage(pageResult.getNumber() + 1);
+        pageDTO.setSize(pageResult.getSize());
         return ApiResult.success(pageDTO);
     }
 
@@ -93,7 +129,42 @@ public class ContactController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Long userId = getCurrentUserId();
-        PageDTO<?> pageDTO = new PageDTO<>(contactService.getRecycleBin(userId, page, size));
+        var pageResult = contactService.getRecycleBin(userId, page, size);
+
+        @SuppressWarnings("unchecked")
+        var dtoContent = (java.util.List<Object>) (java.util.List<?>) pageResult.getContent().stream().map(c -> {
+            var map = new java.util.HashMap<String, Object>();
+            map.put("id", c.getId());
+            map.put("name", c.getName());
+            map.put("gender", c.getGender());
+            map.put("phoneMobile", c.getPhoneMobile());
+            map.put("phoneHome", c.getPhoneHome());
+            map.put("phoneWork", c.getPhoneWork());
+            map.put("email", c.getEmail());
+            map.put("company", c.getCompany());
+            map.put("jobTitle", c.getJobTitle());
+            map.put("province", c.getProvince());
+            map.put("city", c.getCity());
+            map.put("district", c.getDistrict());
+            map.put("addressDetail", c.getAddressDetail());
+            map.put("birthday", c.getBirthday() != null ? c.getBirthday().toString() : null);
+            map.put("notes", c.getNotes());
+            map.put("deletedAt", c.getDeletedAt());
+            if (c.getGroup() != null) {
+                var groupMap = new java.util.HashMap<String, Object>();
+                groupMap.put("id", c.getGroup().getId());
+                groupMap.put("name", c.getGroup().getName());
+                map.put("group", groupMap);
+            }
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+
+        var pageDTO = new com.example.addressbook.dto.PageDTO<>();
+        pageDTO.setContent(dtoContent);
+        pageDTO.setTotalPages(pageResult.getTotalPages());
+        pageDTO.setTotalElements(pageResult.getTotalElements());
+        pageDTO.setCurrentPage(pageResult.getNumber() + 1);
+        pageDTO.setSize(pageResult.getSize());
         return ApiResult.success(pageDTO);
     }
 

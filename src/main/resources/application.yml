@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8087
   servlet:
     session:
       timeout: 30m
@@ -8,29 +8,12 @@ spring:
   profiles:
     active: dev
 
-  datasource:
-    url: jdbc:h2:file:./data/addressbook;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-        # Use InnoDB-like dialect for H2
     open-in-view: false
 
   thymeleaf:
-    cache: false
     prefix: classpath:/templates/
     suffix: .html
     mode: HTML
@@ -57,53 +40,3 @@ upload:
   import:
     max-size: 10485760  # 10MB
     max-rows: 5000
-
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-
-  datasource:
-    url: jdbc:mysql://192.168.228.100:3306/contacthub?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: root123
-
-  h2:
-    console:
-      enabled: false
-
-  jpa:
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-
-  thymeleaf:
-    cache: false
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/addressbook?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: root
-
-  h2:
-    console:
-      enabled: false
-
-  jpa:
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-
-  thymeleaf:
-    cache: true
