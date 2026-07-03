@@ -1,5 +1,6 @@
 package com.yabo.addressbook.service;
 
+import com.yabo.addressbook.entity.ContactGroup;
 import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.ContactGroupRepository;
@@ -47,7 +48,17 @@ public class AdminService {
         user.setRole("USER");
         user.setEnabled(true);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // 为新用户创建默认分组
+        ContactGroup defaultGroup = new ContactGroup();
+        defaultGroup.setName("默认分组");
+        defaultGroup.setUser(savedUser);
+        defaultGroup.setIsDefault(true);
+        defaultGroup.setSortOrder(0);
+        contactGroupRepository.save(defaultGroup);
+
+        return savedUser;
     }
 
     public User updateUser(Long userId, String email, Boolean enabled) {

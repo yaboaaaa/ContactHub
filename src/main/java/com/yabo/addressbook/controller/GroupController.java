@@ -1,6 +1,7 @@
 package com.yabo.addressbook.controller;
 
 import com.yabo.addressbook.dto.ApiResult;
+import com.yabo.addressbook.dto.GroupRequest;
 import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.GroupService;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,8 +18,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,18 +46,18 @@ public class GroupController {
     @PostMapping
     @Operation(summary = "创建分组", description = "为当前用户创建一个新的联系人分组")
     @ApiResponse(responseCode = "200", description = "创建成功")
-    public ApiResult<?> createGroup(@Parameter(description = "分组名称") @RequestParam String name) {
+    public ApiResult<?> createGroup(@Valid @RequestBody GroupRequest request) {
         Long userId = getCurrentUserId();
-        groupService.createGroup(userId, name);
+        groupService.createGroup(userId, request.getName());
         return ApiResult.success();
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新分组", description = "更新指定分组的名称")
     @ApiResponse(responseCode = "200", description = "更新成功")
-    public ApiResult<?> updateGroup(@Parameter(description = "分组ID") @PathVariable Long id, @Parameter(description = "分组名称") @RequestParam String name) {
+    public ApiResult<?> updateGroup(@Parameter(description = "分组ID") @PathVariable Long id, @Valid @RequestBody GroupRequest request) {
         Long userId = getCurrentUserId();
-        groupService.updateGroup(id, userId, name);
+        groupService.updateGroup(id, userId, request.getName());
         return ApiResult.success();
     }
 

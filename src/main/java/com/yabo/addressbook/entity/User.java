@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -34,15 +34,8 @@ public class User {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean enabled = true;
 
-    @Lob
-    @Column(columnDefinition = "MEDIUMBLOB")
-    private byte[] avatarData;
-
     @Column(length = 500)
     private String avatarUrl;
-
-    @Column(length = 50)
-    private String avatarContentType;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -108,28 +101,12 @@ public class User {
         this.enabled = enabled;
     }
 
-    public byte[] getAvatarData() {
-        return avatarData;
-    }
-
-    public void setAvatarData(byte[] avatarData) {
-        this.avatarData = avatarData;
-    }
-
     public String getAvatarUrl() {
         return avatarUrl;
     }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
-    }
-
-    public String getAvatarContentType() {
-        return avatarContentType;
-    }
-
-    public void setAvatarContentType(String avatarContentType) {
-        this.avatarContentType = avatarContentType;
     }
 
     public LocalDateTime getCreatedAt() {

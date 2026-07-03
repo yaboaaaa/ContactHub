@@ -26,13 +26,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.jpa.domain.Specification;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ExcelUtilTest {
@@ -49,17 +52,36 @@ class ExcelUtilTest {
     @Mock
     private HttpServletResponse response;
 
+    private static final String[] NEW_HEADERS = {
+            "UID", "姓", "名", "显示名", "性别", "手机", "家庭电话", "工作电话",
+            "邮箱", "单位", "职位", "省", "市", "区", "详细地址", "生日", "备注", "所属分组"
+    };
+
+    private static final String[] LEGACY_HEADERS = {
+            "姓名", "性别", "手机", "家庭电话", "工作电话", "邮箱", "单位", "职位",
+            "省", "市", "区", "详细地址", "生日", "备注", "所属分组"
+    };
+
     /**
-     * Create a test XLSX workbook with sample rows.
+     * Create a test XLSX workbook using the new column headers.
      */
     private byte[] createTestWorkbook(String... rowData) throws IOException {
+        return createWorkbookWithHeaders(NEW_HEADERS, rowData);
+    }
+
+    /**
+     * Create a test XLSX workbook using the legacy column headers.
+     */
+    private byte[] createLegacyTestWorkbook(String... rowData) throws IOException {
+        return createWorkbookWithHeaders(LEGACY_HEADERS, rowData);
+    }
+
+    private byte[] createWorkbookWithHeaders(String[] headers, String... rowData) throws IOException {
         XSSFWorkbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("通讯录");
 
         // Header row
         Row header = sheet.createRow(0);
-        String[] headers = {"姓名", "性别", "手机", "家庭电话", "工作电话", "邮箱", "单位", "职位",
-                "省", "市", "区", "详细地址", "生日", "备注", "所属分组"};
         for (int i = 0; i < headers.length; i++) {
             header.createCell(i).setCellValue(headers[i]);
         }
@@ -90,6 +112,9 @@ class ExcelUtilTest {
         Contact contact = new Contact();
         contact.setId(1L);
         contact.setName("张三");
+        contact.setFamilyName("张");
+        contact.setGivenName("三");
+        contact.setUid("test-uid-123");
         contact.setGender(1);
         contact.setPhoneMobile("13800138000");
         contact.setEmail("zhangsan@example.com");
@@ -125,10 +150,14 @@ class ExcelUtilTest {
         // Verify we can read it back
         XSSFWorkbook readBack = new XSSFWorkbook(new ByteArrayInputStream(resultBytes));
         Sheet sheet = readBack.getSheetAt(0);
-        assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("姓名");
-        assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).isEqualTo("张三");
-        assertThat(sheet.getRow(1).getCell(1).getStringCellValue()).isEqualTo("男");
-        assertThat(sheet.getRow(1).getCell(14).getStringCellValue()).isEqualTo("同事");
+        assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("UID");
+        assertThat(sheet.getRow(0).getCell(3).getStringCellValue()).isEqualTo("显示名");
+        assertThat(sheet.getRow(1).getCell(0).getStringCellValue()).isEqualTo("test-uid-123");
+        assertThat(sheet.getRow(1).getCell(1).getStringCellValue()).isEqualTo("张");
+        assertThat(sheet.getRow(1).getCell(2).getStringCellValue()).isEqualTo("三");
+        assertThat(sheet.getRow(1).getCell(3).getStringCellValue()).isEqualTo("张三");
+        assertThat(sheet.getRow(1).getCell(4).getStringCellValue()).isEqualTo("男");
+        assertThat(sheet.getRow(1).getCell(17).getStringCellValue()).isEqualTo("同事");
         readBack.close();
     }
 
@@ -140,10 +169,10 @@ class ExcelUtilTest {
 
         ContactGroup defaultGroup = new ContactGroup();
         defaultGroup.setId(1L);
-        defaultGroup.setName("默认分组");
-        defaultGroup.setIsDefault(true);
+        defaultGroup.setName("同事");
 
-        byte[] workbookBytes = createTestWorkbook("张三,男,13800138000,01012345678,,zhangsan@test.com,公司A,经理,北京,北京市,朝阳区,某某路1号,1990-01-01,备注,同事");
+        byte[] workbookBytes = createTestWorkbook(
+                ",张,三,张三,男,13800138000,01012345678,,zhangsan@test.com,公司A,经理,北京,北京市,朝阳区,某某路1号,1990-01-01,备注,同事");
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -170,7 +199,7 @@ class ExcelUtilTest {
         User user = new User();
         user.setId(userId);
 
-        byte[] workbookBytes = createTestWorkbook(",男,13800138000,,,,,,,,,,,,");
+        byte[] workbookBytes = createTestWorkbook(",,,,男,13800138000,,,,,,,,,,,,,");
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -192,12 +221,8 @@ class ExcelUtilTest {
         User user = new User();
         user.setId(userId);
 
-        ContactGroup defaultGroup = new ContactGroup();
-        defaultGroup.setId(1L);
-        defaultGroup.setName("默认分组");
-        defaultGroup.setIsDefault(true);
-
-        byte[] workbookBytes = createTestWorkbook("李四,女,13900139000,,,,,,,,1995-05-15,,新分组");
+        byte[] workbookBytes = createTestWorkbook(
+                ",李,四,李四,女,13900139000,,,,,,,,,,1995-05-15,,新分组");
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.isEmpty()).thenReturn(false);
@@ -221,6 +246,35 @@ class ExcelUtilTest {
 
         assertThat(result.getSuccessCount()).isEqualTo(1);
         verify(contactGroupRepository).save(any(ContactGroup.class));
+    }
+
+    @Test
+    void importContacts_shouldSupportLegacyTemplate() throws Exception {
+        Long userId = 1L;
+        User user = new User();
+        user.setId(userId);
+
+        ContactGroup defaultGroup = new ContactGroup();
+        defaultGroup.setId(1L);
+        defaultGroup.setName("默认分组");
+        defaultGroup.setIsDefault(true);
+
+        byte[] workbookBytes = createLegacyTestWorkbook("测试联系人,男,13800138000,,,,,,,,,,,,");
+
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getSize()).thenReturn((long) workbookBytes.length);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(workbookBytes));
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(contactGroupRepository.findByUserIdAndIsDefaultTrue(userId)).thenReturn(Optional.of(defaultGroup));
+
+        when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ImportResult result = ExcelUtil.importContacts(file, userId, userRepository, contactGroupRepository, contactRepository);
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        assertThat(result.getFailCount()).isZero();
     }
 
     @Test

@@ -80,6 +80,17 @@
                 <label for="remember-me" class="form-check-label">记住我</label>
             </div>
 
+            <!-- Captcha -->
+            <div class="mb-3" id="captchaSection" style="display:none;">
+                <label class="form-label">验证码</label>
+                <div class="input-group">
+                    <input type="text" id="captchaInput" name="captcha" class="form-control" placeholder="请输入验证码" autocomplete="off">
+                    <button type="button" class="btn btn-outline-secondary" id="captchaRefreshBtn" onclick="loadCaptcha()">
+                        <img id="captchaImage" src="" alt="验证码" style="height: 36px; cursor: pointer;">
+                    </button>
+                </div>
+            </div>
+
             <!-- Submit button -->
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">登 录</button>
@@ -91,5 +102,24 @@
             <a th:href="@{/register}" class="text-decoration-none">立即注册</a>
         </div>
     </div>
+    <script>
+    function loadCaptcha() {
+        fetch('/captcha')
+            .then(res => res.json())
+            .then(data => {
+                if (data.enabled) {
+                    document.getElementById('captchaSection').style.display = 'block';
+                    document.getElementById('captchaImage').src = data.image;
+                } else {
+                    document.getElementById('captchaSection').style.display = 'none';
+                }
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCaptcha();
+        document.getElementById('captchaImage').addEventListener('click', loadCaptcha);
+    });
+    </script>
 </body>
 </html>

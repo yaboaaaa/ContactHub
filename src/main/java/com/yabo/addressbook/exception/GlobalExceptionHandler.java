@@ -2,6 +2,8 @@ package com.yabo.addressbook.exception;
 
 import com.yabo.addressbook.dto.ApiResult;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -9,9 +11,12 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private boolean isAjaxRequest(HttpServletRequest request) {
         String requestedWith = request.getHeader("X-Requested-With");
@@ -56,14 +61,27 @@ public class GlobalExceptionHandler {
         return mav;
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public @ResponseBody Object handleNoResourceFound(NoResourceFoundException e, HttpServletRequest request) {
+        log.warn("Static resource not found: {}", request.getRequestURI());
+        if (isAjaxRequest(request)) {
+            return ApiResult.error(404, "资源不存在");
+        }
+        ModelAndView mav = new ModelAndView("error");
+        mav.addObject("code", 404);
+        mav.addObject("message", "资源不存在");
+        return mav;
+    }
+
     @ExceptionHandler(Exception.class)
     public @ResponseBody Object handleException(Exception e, HttpServletRequest request) {
+        log.error("Unhandled exception at {}", request.getRequestURI(), e);
         if (isAjaxRequest(request)) {
-            return ApiResult.error(500, "服务器内部错误");
+            return ApiResult.error(500, "服务器内部错误: " + e.getMessage());
         }
         ModelAndView mav = new ModelAndView("error");
         mav.addObject("code", 500);
-        mav.addObject("message", "服务器内部错误");
+        mav.addObject("message", "服务器内部错误: " + e.getMessage());
         return mav;
     }
 }

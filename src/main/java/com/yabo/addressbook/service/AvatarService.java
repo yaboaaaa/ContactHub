@@ -3,76 +3,81 @@ package com.yabo.addressbook.service;
 import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.UserRepository;
-import com.yabo.addressbook.util.ImageUtil;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class AvatarService {
 
     private final UserRepository userRepository;
+    private final Path uploadDir;
+    private final String urlPrefix;
 
-    public AvatarService(UserRepository userRepository) {
+    public AvatarService(UserRepository userRepository,
+                         @Value("${upload.avatar.dir:uploads/avatars}") String uploadDirStr) {
         this.userRepository = userRepository;
+        this.uploadDir = Paths.get(uploadDirStr).toAbsolutePath().normalize();
+        this.urlPrefix = "/uploads/avatars/";
+        try {
+            Files.createDirectories(this.uploadDir);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create upload directory: " + this.uploadDir, e);
+        }
     }
 
     /**
-     * Upload and resize avatar for the given username.
-     *
-     * @param username the username
-     * @param file     the uploaded image file
-     * @throws BusinessException if user not found or image validation fails
+     * Upload avatar, save to filesystem, return the public URL.
      */
-    public void uploadAvatar(String username, MultipartFile file) {
+    public String uploadAvatar(String username, MultipartFile file) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException("用户不存在: " + username));
 
-        byte[] resizedBytes = ImageUtil.resizeAvatar(file);
+        try {
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            if (extension.isEmpty()) {
+                extension = ".png";
+            }
+            String filename = UUID.randomUUID().toString() + extension;
 
-        user.setAvatarData(resizedBytes);
-        user.setAvatarContentType(file.getContentType());
-        user.setUpdatedAt(LocalDateTime.now());
+            // Save file to disk
+            Path targetPath = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), targetPath);
 
-        userRepository.save(user);
-    }
+            // Delete old avatar file if exists
+            String oldUrl = user.getAvatarUrl();
+            if (oldUrl != null && oldUrl.startsWith(urlPrefix)) {
+                String oldFilename = oldUrl.substring(urlPrefix.length());
+                try {
+                    Files.deleteIfExists(uploadDir.resolve(oldFilename));
+                } catch (IOException ignored) {}
+            }
 
-    /**
-     * Get avatar data for the given username.
-     *
-     * @param username the username
-     * @return avatar byte array, or null if not found
-     */
-    public byte[] getAvatar(String username) {
-        return userRepository.findByUsername(username)
-                .map(User::getAvatarData)
-                .orElse(null);
-    }
+            // Build the public URL
+            String avatarUrl = urlPrefix + filename;
 
-    /**
-     * Get avatar data for the given user id.
-     *
-     * @param userId the user id
-     * @return avatar byte array, or null if not found
-     */
-    public byte[] getAvatarById(Long userId) {
-        return userRepository.findById(userId)
-                .map(User::getAvatarData)
-                .orElse(null);
-    }
+            // Update user entity - store only the URL
+            user.setAvatarUrl(avatarUrl);
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
 
-    /**
-     * Get avatar content type for the given username.
-     *
-     * @param username the username
-     * @return content type string, or null if not found
-     */
-    public String getAvatarContentType(String username) {
-        return userRepository.findByUsername(username)
-                .map(User::getAvatarContentType)
-                .orElse(null);
+            return avatarUrl;
+        } catch (IOException e) {
+            throw new BusinessException("头像上传失败: " + e.getMessage());
+        }
     }
 }

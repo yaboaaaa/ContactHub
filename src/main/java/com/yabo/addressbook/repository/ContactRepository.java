@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ContactRepository extends JpaRepository<Contact, Long>, JpaSpecificationExecutor<Contact> {
@@ -25,6 +26,8 @@ public interface ContactRepository extends JpaRepository<Contact, Long>, JpaSpec
     void deleteByUserId(Long userId);
 
     void deleteByGroupId(Long groupId);
+
+    Optional<Contact> findByUid(String uid);
 
     @Modifying
     @Query("UPDATE Contact c SET c.group.id = :newGroupId WHERE c.group.id = :oldGroupId AND c.isDeleted = false")

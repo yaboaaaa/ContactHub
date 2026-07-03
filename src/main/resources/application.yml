@@ -43,8 +43,13 @@ admin:
 # File upload limits
 upload:
   avatar:
+    dir: uploads/avatars
     max-size: 2097152  # 2MB
     allowed-types: image/jpeg,image/png
   import:
     max-size: 10485760  # 10MB
     max-rows: 5000
+
+# Captcha configuration
+captcha:
+  enabled: false

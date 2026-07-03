@@ -1,25 +1,32 @@
 package com.yabo.addressbook.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.springframework.util.StringUtils;
 
 @Schema(description = "联系人创建/更新请求体")
 public class ContactDTO {
 
-    @NotBlank(message = "姓名不能为空")
     @Size(max = 50, message = "姓名长度不能超过50个字符")
-    @Schema(description = "姓名", example = "张三", required = true)
+    @Schema(description = "显示名（完整姓名）。若未提供姓/名，后端会自动拆分/拼接", example = "张三")
     private String name;
 
-    @Schema(description = "性别: 0-未知, 1-男, 2-女", example = "1")
+    @NotBlank(message = "姓不能为空")
+    @Size(max = 30, message = "姓长度不能超过30个字符")
+    @Schema(description = "姓", example = "张")
+    private String familyName;
+
+    @NotBlank(message = "名不能为空")
+    @Size(max = 30, message = "名长度不能超过30个字符")
+    @Schema(description = "名", example = "三")
+    private String givenName;
+
+    @Schema(description = "性别: 0-不便透露, 1-男, 2-女", example = "1")
     private Integer gender;
 
-    @Pattern(regexp = "^\\d{6,20}$", message = "手机号格式不正确")
+    @Pattern(regexp = "^(\\d{6,20})?$", message = "手机号格式不正确")
     @Schema(description = "手机号", example = "13800138000")
     private String phoneMobile;
 
@@ -29,7 +36,7 @@ public class ContactDTO {
     @Schema(description = "工作电话", example = "021-87654321")
     private String phoneWork;
 
-    @Email(message = "邮箱格式不正确")
+    @Email(regexp = ".*", message = "邮箱格式不正确")
     @Size(max = 100, message = "邮箱长度不能超过100个字符")
     @Schema(description = "邮箱", example = "zhangsan@example.com")
     private String email;
@@ -68,19 +75,28 @@ public class ContactDTO {
     @Schema(description = "分组ID", example = "1")
     private Long groupId;
 
-    @AssertTrue(message = "至少需要填写一个联系电话")
-    public boolean isValidPhone() {
-        return StringUtils.hasText(phoneMobile)
-                || StringUtils.hasText(phoneHome)
-                || StringUtils.hasText(phoneWork);
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public void setGivenName(String givenName) {
+        this.givenName = givenName;
     }
 
     public Integer getGender() {

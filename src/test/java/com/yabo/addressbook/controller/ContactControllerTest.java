@@ -80,6 +80,7 @@ class ContactControllerTest {
         defaultGroup.setIsDefault(true);
 
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(currentUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(currentUser));
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.yabo.addressbook.repository.ContactGroupRepository;
 import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +77,11 @@ public class ContactService {
                                         String company, String jobTitle, Long groupId,
                                         int page, int size) {
         Specification<Contact> spec = (root, query, cb) -> {
+            // Eagerly fetch group to avoid LazyInitializationException during JSON serialization
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("group", JoinType.LEFT);
+                query.distinct(true);
+            }
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("user").get("id"), userId));
             predicates.add(cb.equal(root.get("isDeleted"), false));
@@ -250,7 +256,15 @@ public class ContactService {
     }
 
     private void applyDtoToContact(Contact contact, ContactDTO dto) {
-        contact.setName(dto.getName());
+        String familyName = dto.getFamilyName();
+        String givenName = dto.getGivenName();
+
+        contact.setFamilyName(familyName);
+        contact.setGivenName(givenName);
+
+        // Build name from familyName + givenName
+        contact.setName(familyName + givenName);
+
         contact.setGender(dto.getGender());
         contact.setPhoneMobile(dto.getPhoneMobile());
         contact.setPhoneHome(dto.getPhoneHome());

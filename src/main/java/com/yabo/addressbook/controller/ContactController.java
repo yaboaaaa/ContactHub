@@ -93,7 +93,11 @@ public class ContactController {
         var dtoContent = (java.util.List<Object>) (java.util.List<?>) pageResult.getContent().stream().map(c -> {
             var map = new java.util.HashMap<String, Object>();
             map.put("id", c.getId());
+            map.put("uid", c.getUid());
             map.put("name", c.getName());
+            map.put("displayName", c.getDisplayName());
+            map.put("familyName", c.getFamilyName());
+            map.put("givenName", c.getGivenName());
             map.put("gender", c.getGender());
             map.put("phoneMobile", c.getPhoneMobile());
             map.put("phoneHome", c.getPhoneHome());
@@ -107,6 +111,7 @@ public class ContactController {
             map.put("addressDetail", c.getAddressDetail());
             map.put("birthday", c.getBirthday() != null ? c.getBirthday().toString() : null);
             map.put("notes", c.getNotes());
+            map.put("avatarUrl", c.getAvatarUrl());
             if (c.getGroup() != null) {
                 var groupMap = new java.util.HashMap<String, Object>();
                 groupMap.put("id", c.getGroup().getId());
@@ -144,7 +149,11 @@ public class ContactController {
         var dtoContent = (java.util.List<Object>) (java.util.List<?>) pageResult.getContent().stream().map(c -> {
             var map = new java.util.HashMap<String, Object>();
             map.put("id", c.getId());
+            map.put("uid", c.getUid());
             map.put("name", c.getName());
+            map.put("displayName", c.getDisplayName());
+            map.put("familyName", c.getFamilyName());
+            map.put("givenName", c.getGivenName());
             map.put("gender", c.getGender());
             map.put("phoneMobile", c.getPhoneMobile());
             map.put("phoneHome", c.getPhoneHome());

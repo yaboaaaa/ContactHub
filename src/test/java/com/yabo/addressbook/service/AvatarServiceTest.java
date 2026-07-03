@@ -5,31 +5,26 @@ import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.time.LocalDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class AvatarServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @TempDir
+    Path tempDir;
 
+    private UserRepository userRepository;
     private AvatarService avatarService;
 
     private User user;
@@ -37,7 +32,8 @@ class AvatarServiceTest {
 
     @BeforeEach
     void setUp() {
-        avatarService = new AvatarService(userRepository);
+        userRepository = mock(UserRepository.class);
+        avatarService = new AvatarService(userRepository, tempDir.toString());
         username = "testuser";
 
         user = new User();
@@ -47,38 +43,58 @@ class AvatarServiceTest {
         user.setRole("USER");
     }
 
-    /**
-     * Create a valid JPEG image as byte array for testing.
-     */
-    private byte[] createValidJpegBytes() throws IOException {
-        BufferedImage image = new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpg", baos);
-        return baos.toByteArray();
-    }
-
     @Test
-    void uploadAvatar_shouldResizeAndSaveAvatar() throws Exception {
-        byte[] avatarBytes = createValidJpegBytes();
-        String contentType = "image/jpeg";
+    void uploadAvatar_shouldSaveFileAndUpdateUser() throws Exception {
+        byte[] avatarBytes = "fake-image-data".getBytes();
+        String contentType = "image/png";
 
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn(contentType);
         when(file.getSize()).thenReturn((long) avatarBytes.length);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(avatarBytes));
+        when(file.getOriginalFilename()).thenReturn("test.png");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
         avatarService.uploadAvatar(username, file);
 
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
+        // Verify user was saved with avatarPath set
+        verify(userRepository).save(user);
+        assertThat(user.getAvatarPath()).isNotNull();
+        assertThat(user.getAvatarPath()).endsWith(".png");
+        assertThat(user.getAvatarContentType()).isEqualTo(contentType);
+        assertThat(user.getUpdatedAt()).isNotNull();
 
-        assertThat(savedUser.getAvatarData()).isNotNull();
-        assertThat(savedUser.getAvatarData()).isNotEmpty();
-        assertThat(savedUser.getAvatarContentType()).isEqualTo(contentType);
-        assertThat(savedUser.getUpdatedAt()).isNotNull();
+        // Verify file was written to disk
+        Path savedFile = tempDir.resolve(user.getAvatarPath());
+        assertThat(Files.exists(savedFile)).isTrue();
+        assertThat(Files.readAllBytes(savedFile)).isEqualTo(avatarBytes);
+    }
+
+    @Test
+    void uploadAvatar_shouldDeleteOldAvatarFile() throws Exception {
+        // Set existing avatar
+        String oldFilename = "old-avatar.png";
+        Path oldFile = tempDir.resolve(oldFilename);
+        Files.write(oldFile, "old-data".getBytes());
+        user.setAvatarPath(oldFilename);
+
+        byte[] newBytes = "new-image-data".getBytes();
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getContentType()).thenReturn("image/png");
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(newBytes));
+        when(file.getOriginalFilename()).thenReturn("new.png");
+        when(file.getSize()).thenReturn((long) newBytes.length);
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+
+        avatarService.uploadAvatar(username, file);
+
+        // Old file should be deleted
+        assertThat(Files.exists(oldFile)).isFalse();
+        // New file should exist
+        Path newFile = tempDir.resolve(user.getAvatarPath());
+        assertThat(Files.exists(newFile)).isTrue();
     }
 
     @Test
@@ -95,9 +111,11 @@ class AvatarServiceTest {
     }
 
     @Test
-    void getAvatar_shouldReturnAvatarBytes() {
-        byte[] expectedBytes = new byte[]{10, 20, 30};
-        user.setAvatarData(expectedBytes);
+    void getAvatar_shouldReturnFileBytes() throws Exception {
+        byte[] expectedBytes = "avatar-content".getBytes();
+        String filename = "avatar-" + UUID.randomUUID() + ".png";
+        Files.write(tempDir.resolve(filename), expectedBytes);
+        user.setAvatarPath(filename);
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
@@ -116,7 +134,7 @@ class AvatarServiceTest {
     }
 
     @Test
-    void getAvatar_shouldReturnNull_whenNoAvatarData() {
+    void getAvatar_shouldReturnNull_whenNoAvatarPath() {
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
         byte[] result = avatarService.getAvatar(username);
@@ -125,9 +143,21 @@ class AvatarServiceTest {
     }
 
     @Test
-    void getAvatarById_shouldReturnAvatarBytes() {
-        byte[] expectedBytes = new byte[]{10, 20, 30};
-        user.setAvatarData(expectedBytes);
+    void getAvatar_shouldReturnNull_whenFileDoesNotExist() {
+        user.setAvatarPath("nonexistent.png");
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+
+        byte[] result = avatarService.getAvatar(username);
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void getAvatarById_shouldReturnFileBytes() throws Exception {
+        byte[] expectedBytes = "avatar-by-id".getBytes();
+        String filename = "avatar-" + UUID.randomUUID() + ".png";
+        Files.write(tempDir.resolve(filename), expectedBytes);
+        user.setAvatarPath(filename);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 

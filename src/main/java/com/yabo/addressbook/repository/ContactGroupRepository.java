@@ -18,5 +18,7 @@ public interface ContactGroupRepository extends JpaRepository<ContactGroup, Long
 
     boolean existsByUserIdAndName(Long userId, String name);
 
+    long countByUserId(Long userId);
+
     void deleteByUserId(Long userId);
 }

@@ -7,7 +7,6 @@ import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.repository.ContactGroupRepository;
 import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
-import jakarta.persistence.criteria.Predicate;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -18,7 +17,6 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,15 +29,18 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class ExcelUtil {
 
     private static final Logger log = LoggerFactory.getLogger(ExcelUtil.class);
     private static final int MAX_ROWS = 5000;
     private static final String[] HEADERS = {
-            "姓名", "性别", "手机", "家庭电话", "工作电话", "邮箱", "单位", "职位",
-            "省", "市", "区", "详细地址", "生日", "备注", "所属分组"
+            "UID", "姓", "名", "显示名", "性别", "手机", "家庭电话", "工作电话",
+            "邮箱", "单位", "职位", "省", "市", "区", "详细地址", "生日", "备注", "所属分组"
     };
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -69,32 +70,25 @@ public class ExcelUtil {
             int rowNum = 1;
             for (Contact contact : contacts) {
                 Row row = sheet.createRow(rowNum++);
-
-                row.createCell(0).setCellValue(nullToEmpty(contact.getName()));
-
-                // Gender: 0->"未知", 1->"男", 2->"女"
-                String genderStr = "未知";
-                if (contact.getGender() != null) {
-                    genderStr = switch (contact.getGender()) {
-                        case 1 -> "男";
-                        case 2 -> "女";
-                        default -> "未知";
-                    };
-                }
-                row.createCell(1).setCellValue(genderStr);
-                row.createCell(2).setCellValue(nullToEmpty(contact.getPhoneMobile()));
-                row.createCell(3).setCellValue(nullToEmpty(contact.getPhoneHome()));
-                row.createCell(4).setCellValue(nullToEmpty(contact.getPhoneWork()));
-                row.createCell(5).setCellValue(nullToEmpty(contact.getEmail()));
-                row.createCell(6).setCellValue(nullToEmpty(contact.getCompany()));
-                row.createCell(7).setCellValue(nullToEmpty(contact.getJobTitle()));
-                row.createCell(8).setCellValue(nullToEmpty(contact.getProvince()));
-                row.createCell(9).setCellValue(nullToEmpty(contact.getCity()));
-                row.createCell(10).setCellValue(nullToEmpty(contact.getDistrict()));
-                row.createCell(11).setCellValue(nullToEmpty(contact.getAddressDetail()));
-                row.createCell(12).setCellValue(contact.getBirthday() != null ? contact.getBirthday().format(DATE_FORMATTER) : "");
-                row.createCell(13).setCellValue(nullToEmpty(contact.getNotes()));
-                row.createCell(14).setCellValue(contact.getGroup() != null ? nullToEmpty(contact.getGroup().getName()) : "");
+                int col = 0;
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getUid()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getFamilyName()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getGivenName()));
+                row.createCell(col++).setCellValue(contact.getDisplayName());
+                row.createCell(col++).setCellValue(genderToString(contact.getGender()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getPhoneMobile()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getPhoneHome()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getPhoneWork()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getEmail()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getCompany()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getJobTitle()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getProvince()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getCity()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getDistrict()));
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getAddressDetail()));
+                row.createCell(col++).setCellValue(contact.getBirthday() != null ? contact.getBirthday().format(DATE_FORMATTER) : "");
+                row.createCell(col++).setCellValue(nullToEmpty(contact.getNotes()));
+                row.createCell(col++).setCellValue(contact.getGroup() != null ? nullToEmpty(contact.getGroup().getName()) : "");
             }
 
             // Auto-size columns
@@ -153,6 +147,14 @@ public class ExcelUtil {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
 
+            // Parse header row to support both new and legacy templates
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) {
+                result.addFailure("Excel缺少表头行");
+                return result;
+            }
+            ColumnIndex idx = new ColumnIndex(headerRow);
+
             // Start from row 1 (skip header row)
             for (int i = 1; i <= rowsToProcess; i++) {
                 Row row = sheet.getRow(i);
@@ -161,7 +163,7 @@ public class ExcelUtil {
                 }
 
                 try {
-                    processRow(row, user, groupRepository, contactRepository, result);
+                    processRow(row, idx, user, groupRepository, contactRepository, result);
                 } catch (Exception e) {
                     log.error("Error processing row {}: {}", i + 1, e.getMessage());
                     result.addFailure("第" + (i + 1) + "行处理失败: " + e.getMessage());
@@ -191,53 +193,51 @@ public class ExcelUtil {
     /**
      * Process a single row from the Excel sheet.
      */
-    private static void processRow(Row row, User user,
+    private static void processRow(Row row, ColumnIndex idx, User user,
                                     ContactGroupRepository groupRepository,
                                     ContactRepository contactRepository,
                                     ImportResult result) {
-        String name = getCellValue(row.getCell(0));
+        String uid = idx.uid >= 0 ? getCellValue(row.getCell(idx.uid)) : "";
+        String familyName = idx.familyName >= 0 ? getCellValue(row.getCell(idx.familyName)) : "";
+        String givenName = idx.givenName >= 0 ? getCellValue(row.getCell(idx.givenName)) : "";
+        String displayName = idx.displayName >= 0 ? getCellValue(row.getCell(idx.displayName)) : "";
+        String legacyName = idx.name >= 0 ? getCellValue(row.getCell(idx.name)) : "";
+
+        // Resolve name: prefer explicit split fields, then display name, then legacy name
+        if (!StringUtils.hasText(familyName) && !StringUtils.hasText(givenName)) {
+            String source = StringUtils.hasText(displayName) ? displayName : legacyName;
+            if (StringUtils.hasText(source)) {
+                String[] split = splitName(source.trim());
+                familyName = split[0];
+                givenName = split[1];
+            }
+        }
+
+        String name = StringUtils.hasText(displayName) ? displayName.trim()
+                : (familyName != null ? familyName : "") + (givenName != null ? givenName : "");
+
         if (!StringUtils.hasText(name)) {
             result.addFailure("第" + (row.getRowNum() + 1) + "行: 姓名为空，已跳过");
             return;
         }
 
-        // Parse gender
-        String genderStr = getCellValue(row.getCell(1));
-        Integer gender = switch (genderStr) {
-            case "男" -> 1;
-            case "女" -> 2;
-            default -> 0;
-        };
+        // Parse gender: 男/女/不便透露/未知 -> 1/2/0/0
+        String genderStr = getCellValue(row.getCell(idx.gender));
+        Integer gender = parseGender(genderStr);
 
-        String phoneMobile = getCellValue(row.getCell(2));
-        String phoneHome = getCellValue(row.getCell(3));
-        String phoneWork = getCellValue(row.getCell(4));
-
-        // Validate: at least one phone number required
-        if (!StringUtils.hasText(phoneMobile) && !StringUtils.hasText(phoneHome) && !StringUtils.hasText(phoneWork)) {
-            result.addFailure("第" + (row.getRowNum() + 1) + "行: " + name + " 至少需要一个联系电话");
-            return;
-        }
-
-        // Check duplicate by name + phoneMobile
-        if (StringUtils.hasText(phoneMobile)) {
-            boolean exists = checkDuplicate(name, phoneMobile, user.getId(), contactRepository);
-            if (exists) {
-                result.addFailure("第" + (row.getRowNum() + 1) + "行: " + name + "(" + phoneMobile + ") 已存在");
-                return;
-            }
-        }
-
-        String email = getCellValue(row.getCell(5));
-        String company = getCellValue(row.getCell(6));
-        String jobTitle = getCellValue(row.getCell(7));
-        String province = getCellValue(row.getCell(8));
-        String city = getCellValue(row.getCell(9));
-        String district = getCellValue(row.getCell(10));
-        String addressDetail = getCellValue(row.getCell(11));
-        String birthdayStr = getCellValue(row.getCell(12));
-        String notes = getCellValue(row.getCell(13));
-        String groupName = getCellValue(row.getCell(14));
+        String phoneMobile = getCellValue(row.getCell(idx.phoneMobile));
+        String phoneHome = getCellValue(row.getCell(idx.phoneHome));
+        String phoneWork = getCellValue(row.getCell(idx.phoneWork));
+        String email = getCellValue(row.getCell(idx.email));
+        String company = getCellValue(row.getCell(idx.company));
+        String jobTitle = getCellValue(row.getCell(idx.jobTitle));
+        String province = getCellValue(row.getCell(idx.province));
+        String city = getCellValue(row.getCell(idx.city));
+        String district = getCellValue(row.getCell(idx.district));
+        String addressDetail = getCellValue(row.getCell(idx.addressDetail));
+        String birthdayStr = getCellValue(row.getCell(idx.birthday));
+        String notes = getCellValue(row.getCell(idx.notes));
+        String groupName = getCellValue(row.getCell(idx.group));
 
         // Parse birthday
         LocalDate birthday = null;
@@ -245,27 +245,34 @@ public class ExcelUtil {
             birthday = parseBirthday(birthdayStr);
         }
 
-        // Handle group: find existing or create new
-        ContactGroup group = null;
-        if (StringUtils.hasText(groupName)) {
-            group = groupRepository.findByUserIdAndName(user.getId(), groupName)
-                    .orElseGet(() -> {
-                        ContactGroup newGroup = new ContactGroup();
-                        newGroup.setName(groupName);
-                        newGroup.setUser(user);
-                        newGroup.setIsDefault(false);
-                        newGroup.setSortOrder(0);
-                        return groupRepository.save(newGroup);
-                    });
+        // Handle group: find existing or create new under current user
+        ContactGroup group = resolveGroup(groupName, user, groupRepository);
+
+        // Resolve contact by UID if provided; otherwise create new
+        Contact contact;
+        boolean isNew = true;
+        if (StringUtils.hasText(uid)) {
+            Optional<Contact> existing = contactRepository.findByUid(uid);
+            if (existing.isPresent()) {
+                Contact existingContact = existing.get();
+                if (!existingContact.getUser().getId().equals(user.getId())) {
+                    result.addFailure("第" + (row.getRowNum() + 1) + "行: UID 所属用户不匹配");
+                    return;
+                }
+                contact = existingContact;
+                isNew = false;
+            } else {
+                contact = new Contact();
+                contact.setUid(uid.trim());
+            }
         } else {
-            group = groupRepository.findByUserIdAndIsDefaultTrue(user.getId())
-                    .orElse(null);
+            contact = new Contact();
         }
 
-        // Create contact entity
-        Contact contact = new Contact();
         contact.setUser(user);
         contact.setGroup(group);
+        contact.setFamilyName(familyName);
+        contact.setGivenName(givenName);
         contact.setName(name);
         contact.setGender(gender);
         contact.setPhoneMobile(phoneMobile);
@@ -281,26 +288,59 @@ public class ExcelUtil {
         contact.setBirthday(birthday);
         contact.setNotes(notes);
         contact.setIsDeleted(false);
-        contact.setCreatedAt(LocalDateTime.now());
+        if (isNew) {
+            contact.setCreatedAt(LocalDateTime.now());
+        }
 
         contactRepository.save(contact);
         result.setSuccessCount(result.getSuccessCount() + 1);
     }
 
-    /**
-     * Check if a contact with the same name and phoneMobile already exists for the user.
-     */
-    private static boolean checkDuplicate(String name, String phoneMobile, Long userId,
-                                           ContactRepository contactRepository) {
-        Specification<Contact> spec = (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("user").get("id"), userId));
-            predicates.add(cb.equal(root.get("isDeleted"), false));
-            predicates.add(cb.equal(root.get("name"), name));
-            predicates.add(cb.equal(root.get("phoneMobile"), phoneMobile));
-            return cb.and(predicates.toArray(new Predicate[0]));
+    private static ContactGroup resolveGroup(String groupName, User user,
+                                              ContactGroupRepository groupRepository) {
+        if (!StringUtils.hasText(groupName)) {
+            return groupRepository.findByUserIdAndIsDefaultTrue(user.getId())
+                    .orElse(null);
+        }
+        return groupRepository.findByUserIdAndName(user.getId(), groupName)
+                .orElseGet(() -> {
+                    ContactGroup newGroup = new ContactGroup();
+                    newGroup.setName(groupName);
+                    newGroup.setUser(user);
+                    newGroup.setIsDefault(false);
+                    newGroup.setSortOrder(0);
+                    return groupRepository.save(newGroup);
+                });
+    }
+
+    private static String[] splitName(String name) {
+        if (name.length() >= 2) {
+            return new String[]{name.substring(0, 1), name.substring(1)};
+        }
+        return new String[]{name, ""};
+    }
+
+    private static Integer parseGender(String genderStr) {
+        if (!StringUtils.hasText(genderStr)) {
+            return 0;
+        }
+        return switch (genderStr.trim()) {
+            case "男" -> 1;
+            case "女" -> 2;
+            case "不便透露", "未知" -> 0;
+            default -> 0;
         };
-        return contactRepository.count(spec) > 0;
+    }
+
+    private static String genderToString(Integer gender) {
+        if (gender == null) {
+            return "不便透露";
+        }
+        return switch (gender) {
+            case 1 -> "男";
+            case 2 -> "女";
+            default -> "不便透露";
+        };
     }
 
     /**
@@ -362,5 +402,65 @@ public class ExcelUtil {
 
     private static String nullToEmpty(String value) {
         return value != null ? value : "";
+    }
+
+    /**
+     * Maps header column names to zero-based indices.
+     * Supports both the new template and the legacy template.
+     */
+    private static class ColumnIndex {
+        int uid = -1;
+        int familyName = -1;
+        int givenName = -1;
+        int displayName = -1;
+        int name = -1;
+        int gender = -1;
+        int phoneMobile = -1;
+        int phoneHome = -1;
+        int phoneWork = -1;
+        int email = -1;
+        int company = -1;
+        int jobTitle = -1;
+        int province = -1;
+        int city = -1;
+        int district = -1;
+        int addressDetail = -1;
+        int birthday = -1;
+        int notes = -1;
+        int group = -1;
+
+        ColumnIndex(Row headerRow) {
+            Map<String, Integer> indexByHeader = new HashMap<>();
+            for (Cell cell : headerRow) {
+                String header = getCellValue(cell);
+                if (StringUtils.hasText(header)) {
+                    indexByHeader.put(normalizeHeader(header), cell.getColumnIndex());
+                }
+            }
+
+            uid = indexByHeader.getOrDefault("uid", -1);
+            familyName = indexByHeader.getOrDefault("姓", -1);
+            givenName = indexByHeader.getOrDefault("名", -1);
+            displayName = indexByHeader.getOrDefault("显示名", indexByHeader.getOrDefault("fn", -1));
+            name = indexByHeader.getOrDefault("姓名", -1);
+            gender = indexByHeader.getOrDefault("性别", -1);
+            phoneMobile = indexByHeader.getOrDefault("手机", -1);
+            phoneHome = indexByHeader.getOrDefault("家庭电话", -1);
+            phoneWork = indexByHeader.getOrDefault("工作电话", -1);
+            email = indexByHeader.getOrDefault("邮箱", -1);
+            company = indexByHeader.getOrDefault("单位", indexByHeader.getOrDefault("公司", -1));
+            jobTitle = indexByHeader.getOrDefault("职位", -1);
+            province = indexByHeader.getOrDefault("省", -1);
+            city = indexByHeader.getOrDefault("市", -1);
+            district = indexByHeader.getOrDefault("区", -1);
+            addressDetail = indexByHeader.getOrDefault("详细地址", -1);
+            birthday = indexByHeader.getOrDefault("生日", -1);
+            notes = indexByHeader.getOrDefault("备注", -1);
+            group = indexByHeader.getOrDefault("所属分组", -1);
+        }
+
+        private static String normalizeHeader(String header) {
+            return header.trim().replaceAll("\\s+", "").toLowerCase();
+        }
     }
 }

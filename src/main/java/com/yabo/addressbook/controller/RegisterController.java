@@ -1,7 +1,9 @@
 package com.yabo.addressbook.controller;
 
 import com.yabo.addressbook.exception.BusinessException;
+import com.yabo.addressbook.service.CaptchaService;
 import com.yabo.addressbook.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class RegisterController {
 
     private final UserService userService;
+    private final CaptchaService captchaService;
 
-    public RegisterController(UserService userService) {
+    public RegisterController(UserService userService, CaptchaService captchaService) {
         this.userService = userService;
+        this.captchaService = captchaService;
     }
 
     @GetMapping("/register")
@@ -26,8 +30,11 @@ public class RegisterController {
     public String register(@RequestParam String username,
                            @RequestParam String password,
                            @RequestParam(required = false) String email,
+                           @RequestParam(required = false) String captcha,
+                           HttpSession session,
                            Model model) {
         try {
+            captchaService.validateCaptcha(session, captcha);
             userService.register(username, password, email);
             return "redirect:/login?registered";
         } catch (BusinessException e) {

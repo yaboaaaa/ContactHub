@@ -14,6 +14,8 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
+import org.springframework.util.StringUtils;
 
 @Entity
 @Table(name = "contacts")
@@ -34,6 +36,15 @@ public class Contact {
 
     @Column(nullable = false, length = 50)
     private String name;
+
+    @Column(name = "family_name", length = 30)
+    private String familyName;
+
+    @Column(name = "given_name", length = 30)
+    private String givenName;
+
+    @Column(name = "uid", length = 255, unique = true)
+    private String uid;
 
     @Column
     private Integer gender;
@@ -74,6 +85,9 @@ public class Contact {
     @Column(length = 500)
     private String notes;
 
+    @Column(length = 500)
+    private String avatarUrl;
+
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isDeleted = false;
 
@@ -89,11 +103,26 @@ public class Contact {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (!StringUtils.hasText(this.uid)) {
+            this.uid = UUID.randomUUID().toString();
+        }
+        ensureNameFromNames();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        ensureNameFromNames();
+    }
+
+    private void ensureNameFromNames() {
+        if (!StringUtils.hasText(this.name)) {
+            this.name = nullToEmpty(this.familyName) + nullToEmpty(this.givenName);
+        }
+    }
+
+    private static String nullToEmpty(String value) {
+        return value != null ? value : "";
     }
 
     public Long getId() {
@@ -126,6 +155,40 @@ public class Contact {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public void setGivenName(String givenName) {
+        this.givenName = givenName;
+    }
+
+    public String getUid() {
+        return uid;
+    }
+
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    /**
+     * Return the display name (FN). Falls back to familyName + givenName if name is blank.
+     */
+    public String getDisplayName() {
+        if (StringUtils.hasText(this.name)) {
+            return this.name;
+        }
+        return nullToEmpty(this.familyName) + nullToEmpty(this.givenName);
     }
 
     public Integer getGender() {
@@ -230,6 +293,14 @@ public class Contact {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public Boolean getIsDeleted() {
