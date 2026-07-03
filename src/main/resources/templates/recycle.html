@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="_csrf" th:content="${_csrf.token}"/>
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
-    <title>回收站 - 通讯录系统</title>
+    <title th:text="#{page.title.recycle}">回收站 - 通讯录系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -75,13 +75,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/contacts}">通讯录</a>
+                        <a class="nav-link" th:href="@{/contacts}">[[#{nav.contacts}]]</a>
                     </li>
                     <li class="nav-item" sec:authorize="hasRole('ADMIN')">
-                        <a class="nav-link" th:href="@{/admin/users}">用户管理</a>
+                        <a class="nav-link" th:href="@{/admin/users}">[[#{nav.admin}]]</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/logout}">退出登录</a>
+                        <a class="nav-link" th:href="@{/logout}">[[#{nav.logout}]]</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown">
+                            🌐
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" th:href="@{?lang=zh}">中文</a></li>
+                            <li><a class="dropdown-item" th:href="@{?lang=en}">English</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
@@ -108,7 +117,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3 me-1" viewBox="0 0 16 16">
                         <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
                     </svg>
-                    清空回收站
+                    [[#{btn.emptyRecycle}]]
                 </button>
             </div>
         </div>
@@ -130,16 +139,16 @@
                 <table class="table table-hover align-middle bg-white rounded shadow-sm">
                     <thead>
                         <tr>
-                            <th>姓名</th>
-                            <th>手机号</th>
-                            <th>邮箱</th>
-                            <th>删除时间</th>
-                            <th>操作</th>
+                            <th>[[#{recycle.name}]]</th>
+                            <th>[[#{recycle.phone}]]</th>
+                            <th>[[#{recycle.email}]]</th>
+                            <th>[[#{recycle.deletedAt}]]</th>
+                            <th>[[#{recycle.actions}]]</th>
                         </tr>
                     </thead>
                     <tbody id="recycleTableBody">
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">回收站为空</td>
+                            <td colspan="5" class="text-center text-muted py-4">[[#{recycle.empty}]]</td>
                         </tr>
                     </tbody>
                 </table>
@@ -152,7 +161,7 @@
 
         <!-- Pagination -->
         <nav class="d-flex justify-content-between align-items-center mt-3" id="paginationNav">
-            <div class="record-count" id="recordCount">共 0 条</div>
+            <div class="record-count" id="recordCount">[[#{common.records(0)}]]</div>
             <ul class="pagination pagination-sm mb-0" id="pagination">
             </ul>
         </nav>
@@ -163,15 +172,15 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">确认恢复</h5>
+                    <h5 class="modal-title">[[#{modal.confirmRestore}]]</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>确定要恢复联系人 <strong id="restoreContactName"></strong> 吗？</p>
+                    <p id="restoreConfirmText" class="mb-0">[[#{contact.restoreConfirm('__NAME__')}]]</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-success" id="confirmRestoreBtn">确认恢复</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">[[#{btn.cancel}]]</button>
+                    <button type="button" class="btn btn-success" id="confirmRestoreBtn">[[#{btn.confirmRestore}]]</button>
                 </div>
             </div>
         </div>
@@ -182,7 +191,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">永久删除</h5>
+                    <h5 class="modal-title">[[#{modal.permanentDelete}]]</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -190,13 +199,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill me-1" viewBox="0 0 16 16">
                             <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                         </svg>
-                        <strong>此操作不可恢复！</strong>
+                        <strong>[[#{contact.permanentDelete}]]</strong>
                     </div>
-                    <p class="mt-2">确定要永久删除联系人 <strong id="permDeleteContactName"></strong> 吗？删除后数据将无法找回。</p>
+                    <p id="permDeleteConfirmText" class="mt-2 mb-0">[[#{contact.permanentDeleteConfirm('__NAME__')}]]</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-danger" id="confirmPermDeleteBtn">确认永久删除</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">[[#{btn.cancel}]]</button>
+                    <button type="button" class="btn btn-danger" id="confirmPermDeleteBtn">[[#{btn.confirmDelete}]]</button>
                 </div>
             </div>
         </div>
@@ -207,7 +216,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">清空回收站</h5>
+                    <h5 class="modal-title">[[#{modal.emptyRecycle}]]</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -215,13 +224,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill me-1" viewBox="0 0 16 16">
                             <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                         </svg>
-                        <strong>此操作不可恢复！</strong>
+                        <strong>[[#{contact.permanentDelete}]]</strong>
                     </div>
-                    <p class="mt-2">确定要清空回收站吗？所有已删除的联系人将被永久删除，无法恢复。</p>
+                    <p class="mt-2">[[#{contact.emptyRecycle}]]</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-danger" id="confirmEmptyBtn">确认清空</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">[[#{btn.cancel}]]</button>
+                    <button type="button" class="btn btn-danger" id="confirmEmptyBtn">[[#{btn.confirmEmpty}]]</button>
                 </div>
             </div>
         </div>
@@ -229,7 +238,7 @@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script th:inline="javascript">
         let currentPage = 0;
         let currentRestoreId = null;
         let currentPermDeleteId = null;
@@ -282,7 +291,7 @@
                     }
                 })
                 .fail(function() {
-                    showAlert('加载回收站数据失败', 'danger');
+                    showAlert(/*[[#{alert.failure}]]*/ '操作失败', 'danger');
                 })
                 .always(function() {
                     $('#loadingOverlay').removeClass('active');
@@ -295,14 +304,19 @@
             const totalPages = data.totalPages || 0;
             const current = data.currentPage - 1;
 
-            $('#recordCount').text('共 ' + totalElements + ' 条');
+            var recordTemplate = /*[[#{common.records('__COUNT__')}]]*/ '共 __COUNT__ 条';
+            $('#recordCount').text(recordTemplate.replace('__COUNT__', totalElements));
+
+            const restoreBtnText = /*[[#{btn.restore}]]*/ '恢复';
+            const permDeleteBtnText = /*[[#{btn.permanentDelete}]]*/ '永久删除';
+            const deleteBtnText = /*[[#{admin.btn.delete}]]*/ '删除';
 
             // Desktop table
             const tbody = $('#recycleTableBody');
             tbody.empty();
 
             if (content.length === 0) {
-                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4">回收站为空</td></tr>');
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4">[[#{recycle.empty}]]</td></tr>');
             } else {
                 content.forEach(function(c) {
                     const tr = '<tr>' +
@@ -312,8 +326,8 @@
                         '<td class="text-danger">' + formatDateTime(c.deletedAt) + '</td>' +
                         '<td>' +
                         '<div class="btn-group btn-group-sm">' +
-                        '<button class="btn btn-outline-success" onclick="confirmRestore(' + c.id + ',\'' + escapeHtml(c.name) + '\')">恢复</button>' +
-                        '<button class="btn btn-outline-danger" onclick="confirmPermanentDelete(' + c.id + ',\'' + escapeHtml(c.name) + '\')">永久删除</button>' +
+                        '<button class="btn btn-outline-success" onclick="confirmRestore(' + c.id + ',\'' + escapeHtml(c.name) + '\')">' + restoreBtnText + '</button>' +
+                        '<button class="btn btn-outline-danger" onclick="confirmPermanentDelete(' + c.id + ',\'' + escapeHtml(c.name) + '\')">' + permDeleteBtnText + '</button>' +
                         '</div>' +
                         '</td>' +
                         '</tr>';
@@ -325,7 +339,7 @@
             const cardList = $('#recycleCardList');
             cardList.empty();
             if (content.length === 0) {
-                cardList.html('<div class="text-center text-muted py-4">回收站为空</div>');
+                cardList.html('<div class="text-center text-muted py-4">[[#{recycle.empty}]]</div>');
             } else {
                 content.forEach(function(c) {
                     const card = '<div class="recycle-card position-relative">' +
@@ -339,8 +353,8 @@
                         '</div>' +
                         '</div>' +
                         '<div class="btn-group btn-group-sm">' +
-                        '<button class="btn btn-outline-success btn-sm" onclick="confirmRestore(' + c.id + ',\'' + escapeHtml(c.name) + '\')">恢复</button>' +
-                        '<button class="btn btn-outline-danger btn-sm" onclick="confirmPermanentDelete(' + c.id + ',\'' + escapeHtml(c.name) + '\')">删除</button>' +
+                        '<button class="btn btn-outline-success btn-sm" onclick="confirmRestore(' + c.id + ',\'' + escapeHtml(c.name) + '\')">' + restoreBtnText + '</button>' +
+                        '<button class="btn btn-outline-danger btn-sm" onclick="confirmPermanentDelete(' + c.id + ',\'' + escapeHtml(c.name) + '\')">' + deleteBtnText + '</button>' +
                         '</div>' +
                         '</div>' +
                         '</div>';
@@ -374,7 +388,8 @@
 
         function confirmRestore(id, name) {
             currentRestoreId = id;
-            $('#restoreContactName').text(name);
+            var template = /*[[#{contact.restoreConfirm('__NAME__')}]]*/ '确定要恢复联系人 __NAME__ 吗？';
+            $('#restoreConfirmText').text(template.replace('__NAME__', name));
             const modal = new bootstrap.Modal(document.getElementById('restoreConfirmModal'));
             modal.show();
         }
@@ -386,22 +401,23 @@
                 method: 'PUT',
                 success: function(result) {
                     if (result.code === 200) {
-                        showAlert('恢复成功', 'success');
+                        showAlert(/*[[#{alert.restoreSuccess}]]*/ '恢复成功', 'success');
                         bootstrap.Modal.getInstance(document.getElementById('restoreConfirmModal')).hide();
                         loadRecycleBin(currentPage);
                     } else {
-                        showAlert(result.message || '恢复失败', 'danger');
+                        showAlert(result.message || /*[[#{alert.failure}]]*/ '操作失败', 'danger');
                     }
                 },
                 error: function() {
-                    showAlert('网络错误', 'danger');
+                    showAlert(/*[[#{alert.networkError}]]*/ '网络错误', 'danger');
                 }
             });
         });
 
         function confirmPermanentDelete(id, name) {
             currentPermDeleteId = id;
-            $('#permDeleteContactName').text(name);
+            var template = /*[[#{contact.permanentDeleteConfirm('__NAME__')}]]*/ '确定要永久删除联系人 __NAME__ 吗？删除后数据将无法找回。';
+            $('#permDeleteConfirmText').text(template.replace('__NAME__', name));
             const modal = new bootstrap.Modal(document.getElementById('permanentDeleteModal'));
             modal.show();
         }
@@ -413,15 +429,15 @@
                 method: 'DELETE',
                 success: function(result) {
                     if (result.code === 200) {
-                        showAlert('已永久删除', 'success');
+                        showAlert(/*[[#{alert.deleteSuccess}]]*/ '删除成功', 'success');
                         bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();
                         loadRecycleBin(currentPage);
                     } else {
-                        showAlert(result.message || '删除失败', 'danger');
+                        showAlert(result.message || /*[[#{alert.failure}]]*/ '操作失败', 'danger');
                     }
                 },
                 error: function() {
-                    showAlert('网络错误', 'danger');
+                    showAlert(/*[[#{alert.networkError}]]*/ '网络错误', 'danger');
                 }
             });
         });
@@ -437,15 +453,15 @@
                 method: 'DELETE',
                 success: function(result) {
                     if (result.code === 200) {
-                        showAlert('回收站已清空', 'success');
+                        showAlert(/*[[#{alert.emptySuccess}]]*/ '回收站已清空', 'success');
                         bootstrap.Modal.getInstance(document.getElementById('emptyRecycleModal')).hide();
                         loadRecycleBin(0);
                     } else {
-                        showAlert(result.message || '清空失败', 'danger');
+                        showAlert(result.message || /*[[#{alert.failure}]]*/ '操作失败', 'danger');
                     }
                 },
                 error: function() {
-                    showAlert('网络错误', 'danger');
+                    showAlert(/*[[#{alert.networkError}]]*/ '网络错误', 'danger');
                 }
             });
         });

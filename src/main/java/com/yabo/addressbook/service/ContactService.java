@@ -133,6 +133,11 @@ public class ContactService {
     }
 
     @Transactional(readOnly = true)
+    public List<Contact> getAllContacts(Long userId) {
+        return contactRepository.findByUserIdAndIsDeletedFalse(userId);
+    }
+
+    @Transactional(readOnly = true)
     public Page<Contact> getContactsByGroup(Long userId, Long groupId, int page, int size) {
         Specification<Contact> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

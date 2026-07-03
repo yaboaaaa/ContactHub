@@ -31,7 +31,7 @@ public class Contact {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
+    @JoinColumn(name = "group_id", nullable = false)
     private ContactGroup group;
 
     @Column(nullable = false, length = 50)

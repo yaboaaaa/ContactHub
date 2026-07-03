@@ -14,4 +14,69 @@ spring:
   thymeleaf:
     cache: false
 captcha:
-  enabled: false
+  enabled: true
+  integrals:
+    - lowerText: "0"
+      upperText: "2"
+      text: "3x²"
+      answer: 8
+    - lowerText: "0"
+      upperText: "2"
+      text: "6x⁵"
+      answer: 64
+    - lowerText: "0"
+      upperText: "4"
+      text: "x³"
+      answer: 64
+    - lowerText: "0"
+      upperText: "2"
+      text: "5x⁴"
+      answer: 32
+    - lowerText: "0"
+      upperText: "3"
+      text: "2x²"
+      answer: 18
+    - lowerText: "2"
+      upperText: "4"
+      text: "3x²"
+      answer: 56
+    - lowerText: "0"
+      upperText: "1"
+      text: "8x³"
+      answer: 2
+    - lowerText: "0"
+      upperText: "3"
+      text: "x²"
+      answer: 9
+    - lowerText: "0"
+      upperText: "π"
+      text: "sin(x)"
+      answer: 2
+    - lowerText: "0"
+      upperText: "π"
+      text: "cos(x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "sin(x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "cos(x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "π"
+      text: "sin(2x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "2π"
+      text: "sin(x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "tan(x)sec(x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "1"
+      text: "2xe^(x²)"
+      answer: 2

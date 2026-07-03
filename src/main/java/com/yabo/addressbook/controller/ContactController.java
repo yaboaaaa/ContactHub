@@ -2,11 +2,8 @@ package com.yabo.addressbook.controller;
 
 import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.dto.ContactDTO;
-import com.yabo.addressbook.dto.ImportResult;
 import com.yabo.addressbook.dto.PageDTO;
 import com.yabo.addressbook.entity.User;
-import com.yabo.addressbook.repository.ContactGroupRepository;
-import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.ContactService;
 import com.yabo.addressbook.service.GroupService;
@@ -33,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
 
 @Controller
 @RequestMapping("/contacts")
@@ -45,19 +41,13 @@ public class ContactController {
     private final ContactService contactService;
     private final GroupService groupService;
     private final UserRepository userRepository;
-    private final ContactRepository contactRepository;
-    private final ContactGroupRepository contactGroupRepository;
 
     public ContactController(ContactService contactService,
                              GroupService groupService,
-                             UserRepository userRepository,
-                             ContactRepository contactRepository,
-                             ContactGroupRepository contactGroupRepository) {
+                             UserRepository userRepository) {
         this.contactService = contactService;
         this.groupService = groupService;
         this.userRepository = userRepository;
-        this.contactRepository = contactRepository;
-        this.contactGroupRepository = contactGroupRepository;
     }
 
     @GetMapping
@@ -227,6 +217,7 @@ public class ContactController {
     }
 
     @GetMapping("/export")
+    @Operation(summary = "导出联系人", description = "导出筛选后的联系人为Excel文件")
     public void exportContacts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String phone,
@@ -238,22 +229,19 @@ public class ContactController {
             @RequestParam(required = false) Long groupId,
             HttpServletResponse response) {
         Long userId = getCurrentUserId();
-        // Use a large page size to get all matching contacts
         var contacts = contactService.searchContacts(
                 userId, keyword, phone, province, city, district,
                 company, jobTitle, groupId, 0, 10000).getContent();
         ExcelUtil.exportContacts(contacts, response);
     }
 
-    @PostMapping("/import")
-    @ResponseBody
-    @Operation(summary = "导入联系人", description = "通过Excel文件批量导入联系人")
-    @ApiResponse(responseCode = "200", description = "导入成功")
-    public ApiResult<ImportResult> importContacts(@Parameter(description = "Excel文件") @RequestParam("file") MultipartFile file) {
+    @GetMapping("/export/all")
+    @Operation(summary = "导出全部联系人", description = "导出当前用户所有联系人为Excel文件")
+    @ApiResponse(responseCode = "200", description = "导出成功")
+    public void exportAllContacts(HttpServletResponse response) {
         Long userId = getCurrentUserId();
-        ImportResult importResult = ExcelUtil.importContacts(
-                file, userId, userRepository, contactGroupRepository, contactRepository);
-        return ApiResult.success(importResult);
+        var contacts = contactService.getAllContacts(userId);
+        ExcelUtil.exportContacts(contacts, response);
     }
 
     @PutMapping("/{id}")

@@ -14,8 +14,47 @@ public class ImageUtil {
 
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png");
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png");
 
     private ImageUtil() {
+    }
+
+    /**
+     * Validate the file extension against allowed types.
+     */
+    public static void validateExtension(String originalFilename) {
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            throw new BusinessException("文件名不能为空");
+        }
+        String lower = originalFilename.toLowerCase();
+        boolean valid = ALLOWED_EXTENSIONS.stream().anyMatch(lower::endsWith);
+        if (!valid) {
+            throw new BusinessException("仅支持 JPG 和 PNG 格式的图片");
+        }
+    }
+
+    /**
+     * Get the output format name from the original filename.
+     * Returns "jpg" for .jpg/.jpeg, "png" for .png.
+     */
+    public static String getOutputFormat(String originalFilename) {
+        if (originalFilename == null) return "png";
+        String lower = originalFilename.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "jpg";
+        return "png";
+    }
+
+    /**
+     * Format file size in human-readable form (e.g., "256KB", "1.5MB").
+     */
+    public static String formatFileSize(long bytes) {
+        if (bytes < 1024) {
+            return bytes + "B";
+        } else if (bytes < 1024 * 1024) {
+            return String.format("%.1fKB", bytes / 1024.0);
+        } else {
+            return String.format("%.1fMB", bytes / (1024.0 * 1024.0));
+        }
     }
 
     /**

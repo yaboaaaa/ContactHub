@@ -19,6 +19,9 @@ public interface ContactRepository extends JpaRepository<Contact, Long>, JpaSpec
 
     List<Contact> findByUserIdAndIsDeletedTrue(Long userId);
 
+    @Query("SELECT c FROM Contact c JOIN FETCH c.group WHERE c.user.id = :userId AND c.isDeleted = false")
+    List<Contact> findByUserIdAndIsDeletedFalse(Long userId);
+
     List<Contact> findByGroupIdAndIsDeletedFalse(Long groupId);
 
     long countByUserIdAndIsDeletedTrue(Long userId);

@@ -24,3 +24,212 @@ springdoc:
 # Captcha configuration
 captcha:
   enabled: true
+  integrals:
+    # --- ∫₀² family ---
+    - lowerText: "0"
+      upperText: "2"
+      text: "x"
+      answer: 2
+    - lowerText: "0"
+      upperText: "2"
+      text: "2x"
+      answer: 4
+    - lowerText: "0"
+      upperText: "2"
+      text: "3x"
+      answer: 6
+    - lowerText: "0"
+      upperText: "2"
+      text: "4x"
+      answer: 8
+    - lowerText: "0"
+      upperText: "2"
+      text: "3x²"
+      answer: 8
+    - lowerText: "0"
+      upperText: "2"
+      text: "6x²"
+      answer: 16
+    - lowerText: "0"
+      upperText: "2"
+      text: "2x³"
+      answer: 8
+    - lowerText: "0"
+      upperText: "2"
+      text: "4x³"
+      answer: 16
+    - lowerText: "0"
+      upperText: "2"
+      text: "8x³"
+      answer: 32
+    - lowerText: "0"
+      upperText: "2"
+      text: "5x⁴"
+      answer: 32
+    - lowerText: "0"
+      upperText: "2"
+      text: "6x⁵"
+      answer: 64
+    # --- ∫₀¹ family ---
+    - lowerText: "0"
+      upperText: "1"
+      text: "3x²"
+      answer: 1
+    - lowerText: "0"
+      upperText: "1"
+      text: "6x²"
+      answer: 2
+    - lowerText: "0"
+      upperText: "1"
+      text: "9x²"
+      answer: 3
+    - lowerText: "0"
+      upperText: "1"
+      text: "4x³"
+      answer: 1
+    - lowerText: "0"
+      upperText: "1"
+      text: "8x³"
+      answer: 2
+    - lowerText: "0"
+      upperText: "1"
+      text: "12x³"
+      answer: 3
+    - lowerText: "0"
+      upperText: "1"
+      text: "5x⁴"
+      answer: 1
+    - lowerText: "0"
+      upperText: "1"
+      text: "10x⁴"
+      answer: 2
+    - lowerText: "0"
+      upperText: "1"
+      text: "6x⁵"
+      answer: 1
+    # --- ∫₀³ family ---
+    - lowerText: "0"
+      upperText: "3"
+      text: "2x"
+      answer: 9
+    - lowerText: "0"
+      upperText: "3"
+      text: "4x"
+      answer: 18
+    - lowerText: "0"
+      upperText: "3"
+      text: "x²"
+      answer: 9
+    - lowerText: "0"
+      upperText: "3"
+      text: "2x²"
+      answer: 18
+    - lowerText: "0"
+      upperText: "3"
+      text: "3x²"
+      answer: 27
+    # --- ∫₀⁴ family ---
+    - lowerText: "0"
+      upperText: "4"
+      text: "x³"
+      answer: 64
+    # --- ∫₁³ family ---
+    - lowerText: "1"
+      upperText: "3"
+      text: "2x"
+      answer: 8
+    - lowerText: "1"
+      upperText: "3"
+      text: "4x"
+      answer: 16
+    - lowerText: "1"
+      upperText: "3"
+      text: "6x"
+      answer: 24
+    - lowerText: "1"
+      upperText: "3"
+      text: "3x²"
+      answer: 26
+    # --- ∫₁² family ---
+    - lowerText: "1"
+      upperText: "2"
+      text: "2x"
+      answer: 3
+    - lowerText: "1"
+      upperText: "2"
+      text: "6x"
+      answer: 9
+    - lowerText: "1"
+      upperText: "2"
+      text: "3x²"
+      answer: 7
+    - lowerText: "1"
+      upperText: "2"
+      text: "6x²"
+      answer: 14
+    # --- ∫₂⁴ family ---
+    - lowerText: "2"
+      upperText: "4"
+      text: "2x"
+      answer: 12
+    - lowerText: "2"
+      upperText: "4"
+      text: "4x"
+      answer: 24
+    - lowerText: "2"
+      upperText: "4"
+      text: "3x²"
+      answer: 56
+    - lowerText: "2"
+      upperText: "4"
+      text: "6x²"
+      answer: 112
+    # ===== 三角函数积分 (12 problems) =====
+    - lowerText: "0"
+      upperText: "π"
+      text: "sin(x)"
+      answer: 2
+    - lowerText: "0"
+      upperText: "π"
+      text: "cos(x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "sin(x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "cos(x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "π"
+      text: "sin(2x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "2π"
+      text: "sin(x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "sin(2x)"
+      answer: 1
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "cos(2x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/4"
+      text: "sec²(x)"
+      answer: 1
+    - lowerText: "-π"
+      upperText: "π"
+      text: "sin(x)"
+      answer: 0
+    - lowerText: "-π"
+      upperText: "π"
+      text: "cos(x)"
+      answer: 0
+    - lowerText: "0"
+      upperText: "π/2"
+      text: "2sin(x)"
+      answer: 2

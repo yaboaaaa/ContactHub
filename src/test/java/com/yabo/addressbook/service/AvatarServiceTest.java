@@ -8,11 +8,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,32 +46,42 @@ class AvatarServiceTest {
         user.setRole("USER");
     }
 
+    private byte[] createValidPngBytes() throws Exception {
+        BufferedImage img = new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", baos);
+        return baos.toByteArray();
+    }
+
     @Test
-    void uploadAvatar_shouldSaveFileAndUpdateUser() throws Exception {
-        byte[] avatarBytes = "fake-image-data".getBytes();
-        String contentType = "image/png";
+    void uploadAvatar_shouldSaveCompressedFileAndUpdateUser() throws Exception {
+        byte[] avatarBytes = createValidPngBytes();
 
         MultipartFile file = mock(MultipartFile.class);
-        when(file.getContentType()).thenReturn(contentType);
+        when(file.getContentType()).thenReturn("image/png");
         when(file.getSize()).thenReturn((long) avatarBytes.length);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(avatarBytes));
         when(file.getOriginalFilename()).thenReturn("test.png");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
-        avatarService.uploadAvatar(username, file);
+        Map<String, Object> result = avatarService.uploadAvatar(username, file);
 
-        // Verify user was saved with avatarPath set
+        // Verify user was saved with avatarUrl set
         verify(userRepository).save(user);
-        assertThat(user.getAvatarPath()).isNotNull();
-        assertThat(user.getAvatarPath()).endsWith(".png");
-        assertThat(user.getAvatarContentType()).isEqualTo(contentType);
+        assertThat(user.getAvatarUrl()).isNotNull();
+        assertThat(user.getAvatarUrl()).endsWith(".png");
         assertThat(user.getUpdatedAt()).isNotNull();
 
-        // Verify file was written to disk
-        Path savedFile = tempDir.resolve(user.getAvatarPath());
+        // Verify compressed file was written to disk
+        String storedUrl = user.getAvatarUrl();
+        String filename = storedUrl.substring("/uploads/avatars/".length());
+        Path savedFile = tempDir.resolve(filename);
         assertThat(Files.exists(savedFile)).isTrue();
-        assertThat(Files.readAllBytes(savedFile)).isEqualTo(avatarBytes);
+
+        // Verify result has url and size
+        assertThat(result.get("url")).isEqualTo(user.getAvatarUrl());
+        assertThat(result.get("size")).isNotNull();
     }
 
     @Test
@@ -77,9 +90,9 @@ class AvatarServiceTest {
         String oldFilename = "old-avatar.png";
         Path oldFile = tempDir.resolve(oldFilename);
         Files.write(oldFile, "old-data".getBytes());
-        user.setAvatarPath(oldFilename);
+        user.setAvatarUrl("/uploads/avatars/" + oldFilename);
 
-        byte[] newBytes = "new-image-data".getBytes();
+        byte[] newBytes = createValidPngBytes();
         MultipartFile file = mock(MultipartFile.class);
         when(file.getContentType()).thenReturn("image/png");
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(newBytes));
@@ -92,9 +105,6 @@ class AvatarServiceTest {
 
         // Old file should be deleted
         assertThat(Files.exists(oldFile)).isFalse();
-        // New file should exist
-        Path newFile = tempDir.resolve(user.getAvatarPath());
-        assertThat(Files.exists(newFile)).isTrue();
     }
 
     @Test
@@ -111,88 +121,40 @@ class AvatarServiceTest {
     }
 
     @Test
-    void getAvatar_shouldReturnFileBytes() throws Exception {
-        byte[] expectedBytes = "avatar-content".getBytes();
-        String filename = "avatar-" + UUID.randomUUID() + ".png";
-        Files.write(tempDir.resolve(filename), expectedBytes);
-        user.setAvatarPath(filename);
+    void uploadAvatar_shouldRejectInvalidContentType() throws Exception {
+        byte[] avatarBytes = createValidPngBytes();
+
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getContentType()).thenReturn("image/gif");
+        when(file.getSize()).thenReturn((long) avatarBytes.length);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(avatarBytes));
+        when(file.getOriginalFilename()).thenReturn("test.gif");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
-        byte[] result = avatarService.getAvatar(username);
+        assertThatThrownBy(() -> avatarService.uploadAvatar(username, file))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("仅支持");
 
-        assertThat(result).isEqualTo(expectedBytes);
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void getAvatar_shouldReturnNull_whenUserNotFound() {
-        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+    void uploadAvatar_shouldRejectInvalidExtension() throws Exception {
+        byte[] avatarBytes = createValidPngBytes();
 
-        byte[] result = avatarService.getAvatar("nonexistent");
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void getAvatar_shouldReturnNull_whenNoAvatarPath() {
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-
-        byte[] result = avatarService.getAvatar(username);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void getAvatar_shouldReturnNull_whenFileDoesNotExist() {
-        user.setAvatarPath("nonexistent.png");
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-
-        byte[] result = avatarService.getAvatar(username);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void getAvatarById_shouldReturnFileBytes() throws Exception {
-        byte[] expectedBytes = "avatar-by-id".getBytes();
-        String filename = "avatar-" + UUID.randomUUID() + ".png";
-        Files.write(tempDir.resolve(filename), expectedBytes);
-        user.setAvatarPath(filename);
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
-        byte[] result = avatarService.getAvatarById(1L);
-
-        assertThat(result).isEqualTo(expectedBytes);
-    }
-
-    @Test
-    void getAvatarById_shouldReturnNull_whenUserNotFound() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
-        byte[] result = avatarService.getAvatarById(999L);
-
-        assertThat(result).isNull();
-    }
-
-    @Test
-    void getAvatarContentType_shouldReturnContentType() {
-        String expectedContentType = "image/png";
-        user.setAvatarContentType(expectedContentType);
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getContentType()).thenReturn("image/png");
+        when(file.getSize()).thenReturn((long) avatarBytes.length);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(avatarBytes));
+        when(file.getOriginalFilename()).thenReturn("test.bmp");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
-        String result = avatarService.getAvatarContentType(username);
+        assertThatThrownBy(() -> avatarService.uploadAvatar(username, file))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("仅支持");
 
-        assertThat(result).isEqualTo(expectedContentType);
-    }
-
-    @Test
-    void getAvatarContentType_shouldReturnNull_whenUserNotFound() {
-        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
-
-        String result = avatarService.getAvatarContentType("nonexistent");
-
-        assertThat(result).isNull();
+        verify(userRepository, never()).save(any(User.class));
     }
 }

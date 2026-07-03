@@ -6,6 +6,7 @@ import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.util.InitialsAvatarUtil;
+import com.yabo.addressbook.util.ImageUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,21 +111,19 @@ public class ContactAvatarController {
         }
 
         try {
+            // Validate and compress
+            ImageUtil.validateExtension(file.getOriginalFilename());
+            byte[] compressedBytes = ImageUtil.resizeAvatar(file);
+
             Path uploadDir = Paths.get("uploads/avatars/contacts").toAbsolutePath().normalize();
             Files.createDirectories(uploadDir);
 
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            if (extension.isEmpty()) {
-                extension = ".png";
-            }
+            String outputFormat = ImageUtil.getOutputFormat(file.getOriginalFilename());
+            String extension = "png".equals(outputFormat) ? ".png" : ".jpg";
             String filename = "contact-" + id + "-" + UUID.randomUUID().toString() + extension;
 
             Path targetPath = uploadDir.resolve(filename);
-            Files.copy(file.getInputStream(), targetPath);
+            Files.write(targetPath, compressedBytes);
 
             // Delete old avatar file
             String oldUrl = contact.getAvatarUrl();
@@ -141,7 +140,11 @@ public class ContactAvatarController {
 
             String requestedWith = request.getHeader("X-Requested-With");
             if ("XMLHttpRequest".equals(requestedWith)) {
-                return ResponseEntity.ok(ApiResult.success(Map.of("url", avatarUrl)));
+                Map<String, Object> result = new java.util.HashMap<>();
+                result.put("url", avatarUrl);
+                result.put("size", ImageUtil.formatFileSize(compressedBytes.length));
+                result.put("bytes", compressedBytes.length);
+                return ResponseEntity.ok(ApiResult.success(result));
             }
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(URI.create("/contacts"))

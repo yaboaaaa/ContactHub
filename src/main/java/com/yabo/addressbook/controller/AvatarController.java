@@ -66,12 +66,10 @@ public class AvatarController {
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
                                           HttpServletRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String avatarUrl = avatarService.uploadAvatar(username, file);
+        Map<String, Object> result = avatarService.uploadAvatar(username, file);
 
         String requestedWith = request.getHeader("X-Requested-With");
         if ("XMLHttpRequest".equals(requestedWith)) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("url", avatarUrl);
             return ResponseEntity.ok(ApiResult.success(result));
         }
         return ResponseEntity.status(HttpStatus.FOUND)

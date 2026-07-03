@@ -79,11 +79,6 @@ public class GroupService {
     }
 
     public void deleteGroup(Long groupId, Long userId) {
-        // 检查用户分组数量，只剩一个时不允许删除
-        if (contactGroupRepository.countByUserId(userId) <= 1) {
-            throw new BusinessException("只剩一个分组，无法删除");
-        }
-
         ContactGroup group = contactGroupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("分组不存在"));
 
