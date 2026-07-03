@@ -15,6 +15,49 @@
             width: 100%;
             border: none;
         }
+        .form-feedback {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            min-height: 1.25rem;
+        }
+        .form-feedback.valid {
+            color: #198754;
+        }
+        .form-feedback.invalid {
+            color: #dc3545;
+        }
+        .password-strength {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e9ecef;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        .password-strength-bar {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .password-strength-bar.weak {
+            width: 25%;
+            background-color: #dc3545;
+        }
+        .password-strength-bar.medium {
+            width: 50%;
+            background-color: #fd7e14;
+        }
+        .password-strength-bar.good {
+            width: 75%;
+            background-color: #0d6efd;
+        }
+        .password-strength-bar.strong {
+            width: 100%;
+            background-color: #198754;
+        }
+        .password-strength-text {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
         @media (max-width: 576px) {
             .register-card {
                 max-width: 100%;
@@ -51,6 +94,7 @@
                     </span>
                     <input type="text" id="username" name="username" class="form-control" th:placeholder="#{register.placeholder.username}" placeholder="请输入用户名" required autofocus />
                 </div>
+                <div id="usernameFeedback" class="form-feedback"></div>
             </div>
 
             <!-- Password -->
@@ -64,6 +108,10 @@
                     </span>
                     <input type="password" id="password" name="password" class="form-control" th:placeholder="#{register.placeholder.password}" placeholder="请输入密码（至少6位）" required minlength="6" />
                 </div>
+                <div class="password-strength">
+                    <div id="passwordStrengthBar" class="password-strength-bar"></div>
+                </div>
+                <div id="passwordStrengthText" class="password-strength-text text-muted"></div>
             </div>
 
             <!-- Email -->
@@ -105,7 +153,7 @@
             <a th:href="@{?lang=en}" class="text-decoration-none">English</a>
         </div>
     </div>
-    <script>
+    <script th:inline="javascript">
     function loadCaptcha() {
         fetch('/captcha')
             .then(res => res.json())
@@ -119,9 +167,101 @@
             });
     }
 
+    let usernameCheckTimer = null;
+    let lastCheckedUsername = '';
+
+    function checkUsername(username) {
+        const feedback = document.getElementById('usernameFeedback');
+        if (!username || username.trim().length === 0) {
+            feedback.textContent = '';
+            feedback.className = 'form-feedback';
+            return;
+        }
+
+        feedback.textContent = /*[[#{register.usernameChecking}]]*/ '检查中...';
+        feedback.className = 'form-feedback text-muted';
+
+        fetch('/register/check-username?username=' + encodeURIComponent(username.trim()))
+            .then(res => res.json())
+            .then(result => {
+                if (username !== document.getElementById('username').value) {
+                    return;
+                }
+                if (result.code === 200 && result.data === true) {
+                    feedback.textContent = /*[[#{register.usernameAvailable}]]*/ '用户名可用';
+                    feedback.className = 'form-feedback valid';
+                } else {
+                    feedback.textContent = /*[[#{register.usernameTaken}]]*/ '用户名已被占用';
+                    feedback.className = 'form-feedback invalid';
+                }
+            })
+            .catch(() => {
+                feedback.textContent = '';
+                feedback.className = 'form-feedback';
+            });
+    }
+
+    function evaluatePassword(password) {
+        if (!password || password.length < 6) {
+            return { level: 0, label: /*[[#{register.pwdTooShort}]]*/ '密码至少6位' };
+        }
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+        if (/\d/.test(password)) score++;
+        if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+        const labels = [
+            /*[[#{register.pwdWeak}]]*/ '弱',
+            /*[[#{register.pwdMedium}]]*/ '中',
+            /*[[#{register.pwdGood}]]*/ '良',
+            /*[[#{register.pwdStrong}]]*/ '强'
+        ];
+        const level = Math.min(Math.floor(score / 2) + 1, 4);
+        return { level: level, label: labels[level - 1] };
+    }
+
+    function updatePasswordStrength(password) {
+        const bar = document.getElementById('passwordStrengthBar');
+        const text = document.getElementById('passwordStrengthText');
+        const result = evaluatePassword(password);
+
+        bar.className = 'password-strength-bar';
+        if (result.level === 1) bar.classList.add('weak');
+        else if (result.level === 2) bar.classList.add('medium');
+        else if (result.level === 3) bar.classList.add('good');
+        else if (result.level === 4) bar.classList.add('strong');
+
+        if (!password) {
+            text.textContent = '';
+        } else {
+            text.textContent = result.label;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         loadCaptcha();
         document.getElementById('captchaImage').addEventListener('click', loadCaptcha);
+
+        const usernameInput = document.getElementById('username');
+        usernameInput.addEventListener('input', function() {
+            clearTimeout(usernameCheckTimer);
+            const username = this.value;
+            if (username === lastCheckedUsername) {
+                return;
+            }
+            lastCheckedUsername = username;
+            usernameCheckTimer = setTimeout(() => checkUsername(username), 300);
+        });
+        usernameInput.addEventListener('blur', function() {
+            clearTimeout(usernameCheckTimer);
+            checkUsername(this.value);
+        });
+
+        document.getElementById('password').addEventListener('input', function() {
+            updatePasswordStrength(this.value);
+        });
     });
     </script>
 </body>

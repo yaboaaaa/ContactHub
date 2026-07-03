@@ -79,4 +79,14 @@ public class AdminController {
         adminService.deleteUser(id);
         return ApiResult.success();
     }
+
+    @PutMapping("/users/{id}/reset-password")
+    @ResponseBody
+    @Operation(summary = "重置用户密码", description = "管理员重置指定用户的密码")
+    @ApiResponse(responseCode = "200", description = "重置成功")
+    public ApiResult<Void> resetPassword(@Parameter(description = "用户ID") @PathVariable Long id,
+                                         @Parameter(description = "新密码") @RequestParam String password) {
+        adminService.resetPassword(id, password);
+        return ApiResult.success();
+    }
 }

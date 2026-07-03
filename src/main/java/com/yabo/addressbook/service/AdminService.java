@@ -97,4 +97,14 @@ public class AdminService {
         user.setEnabled(!Boolean.TRUE.equals(user.getEnabled()));
         return userRepository.save(user);
     }
+
+    public void resetPassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+        if ("ADMIN".equals(user.getRole())) {
+            throw new BusinessException("不能重置管理员密码");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }
