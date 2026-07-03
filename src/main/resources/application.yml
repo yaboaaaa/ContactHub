@@ -62,6 +62,31 @@ upload:
 spring:
   config:
     activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:mysql://192.168.228.100:3306/contacthub?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root123
+
+  h2:
+    console:
+      enabled: false
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  thymeleaf:
+    cache: false
+
+---
+spring:
+  config:
+    activate:
       on-profile: prod
 
   datasource:
