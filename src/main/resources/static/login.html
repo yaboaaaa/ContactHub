@@ -95,8 +95,12 @@
         if (match) document.getElementById('csrfField').value = decodeURIComponent(match[1]);
 
         function loadCaptcha() {
-            document.getElementById('captchaSection').style.display = 'block';
-            document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+            fetch('/captcha/status').then(function(r){return r.json()}).then(function(data){
+                if (data.enabled) {
+                    document.getElementById('captchaSection').style.display = '';
+                    document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+                }
+            });
         }
 
         loadI18n().then(function() {

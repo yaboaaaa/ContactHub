@@ -125,8 +125,12 @@
     <script src="/js/i18n.js"></script>
     <script>
         function loadCaptcha() {
-            document.getElementById('captchaSection').style.display = 'block';
-            document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+            fetch('/captcha/status').then(function(r){return r.json()}).then(function(data){
+                if (data.enabled) {
+                    document.getElementById('captchaSection').style.display = '';
+                    document.getElementById('captchaImage').src = '/captcha?t=' + Date.now();
+                }
+            });
         }
 
         var usernameCheckTimer = null;

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -14,6 +15,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Controller
@@ -28,6 +30,12 @@ public class CaptchaController {
 
     public CaptchaController(CaptchaProperties captchaProperties) {
         this.captchaProperties = captchaProperties;
+    }
+
+    @GetMapping(value = "/captcha/status", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, Boolean> getStatus() {
+        return Map.of("enabled", captchaEnabled);
     }
 
     @GetMapping(value = "/captcha", produces = MediaType.IMAGE_PNG_VALUE)
