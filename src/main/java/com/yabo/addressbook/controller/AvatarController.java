@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/user")
+@RequestMapping("/api/v1/user")
 public class AvatarController {
 
     private final AvatarService avatarService;

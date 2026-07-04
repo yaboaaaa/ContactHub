@@ -3,12 +3,15 @@ package com.yabo.addressbook.controller;
 import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.dto.ContactDTO;
 import com.yabo.addressbook.dto.PageDTO;
+import com.yabo.addressbook.entity.Contact;
 import com.yabo.addressbook.entity.User;
 import com.yabo.addressbook.exception.BusinessException;
+import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.ContactService;
 import com.yabo.addressbook.service.GroupService;
 import com.yabo.addressbook.util.ExcelUtil;
+import com.yabo.addressbook.util.ImageUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +20,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,9 +35,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/contacts")
+@RequestMapping("/api/v1/contacts")
 @Tag(name = "联系人管理", description = "联系人的增删改查及导入导出操作")
 public class ContactController {
 
@@ -41,13 +53,16 @@ public class ContactController {
     private final ContactService contactService;
     private final GroupService groupService;
     private final UserRepository userRepository;
+    private final ContactRepository contactRepository;
 
     public ContactController(ContactService contactService,
                              GroupService groupService,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             ContactRepository contactRepository) {
         this.contactService = contactService;
         this.groupService = groupService;
         this.userRepository = userRepository;
+        this.contactRepository = contactRepository;
     }
 
     @GetMapping("/data")
@@ -251,6 +266,46 @@ public class ContactController {
         Long userId = getCurrentUserId();
         contactService.softDelete(id, userId);
         return ApiResult.success();
+    }
+
+    @PostMapping("/{id}/avatar")
+    @ResponseBody
+    @Operation(summary = "上传联系人头像")
+    public ApiResult<?> uploadContactAvatar(@PathVariable Long id,
+                                            @RequestParam("file") MultipartFile file) {
+        Long userId = getCurrentUserId();
+        Contact contact = contactRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("联系人不存在"));
+        if (!contact.getUser().getId().equals(userId)) {
+            throw new BusinessException("无权操作该联系人");
+        }
+        try {
+            ImageUtil.validateExtension(file.getOriginalFilename());
+            byte[] compressedBytes = ImageUtil.resizeAvatar(file);
+            Path uploadDir = Paths.get("uploads/avatars/contacts").toAbsolutePath().normalize();
+            Files.createDirectories(uploadDir);
+            String outputFormat = ImageUtil.getOutputFormat(file.getOriginalFilename());
+            String extension = "png".equals(outputFormat) ? ".png" : ".jpg";
+            String filename = "contact-" + id + "-" + UUID.randomUUID().toString() + extension;
+            Path targetPath = uploadDir.resolve(filename);
+            Files.write(targetPath, compressedBytes);
+            String oldUrl = contact.getAvatarUrl();
+            if (oldUrl != null && oldUrl.startsWith("/uploads/avatars/contacts/")) {
+                String oldFilename = oldUrl.substring("/uploads/avatars/contacts/".length());
+                try { Files.deleteIfExists(uploadDir.resolve(oldFilename)); } catch (IOException ignored) {}
+            }
+            String avatarUrl = "/uploads/avatars/contacts/" + filename;
+            contact.setAvatarUrl(avatarUrl);
+            contactRepository.save(contact);
+            var result = new java.util.HashMap<String, Object>();
+            result.put("url", avatarUrl);
+            result.put("size", ImageUtil.formatFileSize(compressedBytes.length));
+            result.put("bytes", compressedBytes.length);
+            return ApiResult.success(result);
+        } catch (IOException e) {
+            log.error("Failed to upload contact avatar: {}", e.getMessage());
+            return ApiResult.error(400, "头像上传失败");
+        }
     }
 
     private Long getCurrentUserId() {

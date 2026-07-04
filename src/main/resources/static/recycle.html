@@ -68,7 +68,7 @@
 
         function loadRecycleBin(page){
             currentPage=page||0;$('#loadingOverlay').addClass('active');
-            $.getJSON('/contacts/recycle/data',{page:currentPage,size:10}).done(function(r){
+            $.getJSON('/api/v1/contacts/recycle/data',{page:currentPage,size:10}).done(function(r){
                 if(r.code===200&&r.data)renderRecycleData(r.data);
             }).fail(function(){showAlert(t('alert.failure','操作失败'),'danger');}).always(function(){$('#loadingOverlay').removeClass('active');});
         }
@@ -88,13 +88,13 @@
         function renderPagination(cur,total){var pg=$('#pagination').empty();if(total<=1)return;pg.append('<li class="page-item '+(cur<=0?'disabled':'')+'"><a class="page-link" onclick="loadRecycleBin('+(cur-1)+')">&laquo;</a></li>');for(var i=Math.max(0,cur-2);i<=Math.min(total-1,cur+2);i++)pg.append('<li class="page-item '+(i===cur?'active':'')+'"><a class="page-link" onclick="loadRecycleBin('+i+')">'+(i+1)+'</a></li>');pg.append('<li class="page-item '+(cur>=total-1?'disabled':'')+'"><a class="page-link" onclick="loadRecycleBin('+(cur+1)+')">&raquo;</a></li>');}
 
         function confirmRestore(id,name){currentRestoreId=id;$('#restoreConfirmText').text(t('contact.restoreConfirm','确定要恢复联系人 {0} 吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('restoreConfirmModal')).show();}
-        $('#confirmRestoreBtn').on('click',function(){if(!currentRestoreId)return;$.ajax({url:'/contacts/'+currentRestoreId+'/restore',method:'PUT',success:function(r){if(r.code===200){showAlert(t('alert.restoreSuccess','恢复成功'),'success');bootstrap.Modal.getInstance(document.getElementById('restoreConfirmModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#confirmRestoreBtn').on('click',function(){if(!currentRestoreId)return;$.ajax({url:'/api/v1/contacts/'+currentRestoreId+'/restore',method:'PUT',success:function(r){if(r.code===200){showAlert(t('alert.restoreSuccess','恢复成功'),'success');bootstrap.Modal.getInstance(document.getElementById('restoreConfirmModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
         function confirmPermanentDelete(id,name){currentPermDeleteId=id;$('#permDeleteConfirmText').text(t('contact.permanentDeleteConfirm','确定要永久删除联系人 {0} 吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('permanentDeleteModal')).show();}
-        $('#confirmPermDeleteBtn').on('click',function(){if(!currentPermDeleteId)return;$.ajax({url:'/contacts/'+currentPermDeleteId+'/permanent',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#confirmPermDeleteBtn').on('click',function(){if(!currentPermDeleteId)return;$.ajax({url:'/api/v1/contacts/'+currentPermDeleteId+'/permanent',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
         function emptyRecycleBin(){new bootstrap.Modal(document.getElementById('emptyRecycleModal')).show();}
-        $('#confirmEmptyBtn').on('click',function(){$.ajax({url:'/contacts/recycle',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.emptySuccess','回收站已清空'),'success');bootstrap.Modal.getInstance(document.getElementById('emptyRecycleModal')).hide();loadRecycleBin(0);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#confirmEmptyBtn').on('click',function(){$.ajax({url:'/api/v1/contacts/recycle',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.emptySuccess','回收站已清空'),'success');bootstrap.Modal.getInstance(document.getElementById('emptyRecycleModal')).hide();loadRecycleBin(0);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
         $(document).ready(function(){initPage();loadRecycleBin(0);});
     </script>

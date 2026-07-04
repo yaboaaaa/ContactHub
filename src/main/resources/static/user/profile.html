@@ -97,7 +97,7 @@
             e.preventDefault();
             var fd = new FormData(this);
             fd.append('_csrf', getCsrfToken());
-            $.ajax({ url: '/user/avatar', method: 'POST', data: fd, processData: false, contentType: false,
+            $.ajax({ url: '/api/v1/user/avatar', method: 'POST', data: fd, processData: false, contentType: false,
                 success: function(r) {
                     if (r.code === 200) { showAlert(t('contact.avatarUploaded', '头像上传成功'), 'success'); document.getElementById('profileAvatar').src = r.data.url + '?t=' + Date.now(); bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide(); }
                     else showAlert(r.message || t('contact.avatarUploadFailed', '上传失败'), 'danger');
@@ -110,7 +110,7 @@
             var email = document.getElementById('profileEmail').value.trim();
             var fb = document.getElementById('profileFeedback');
             if (!username) { fb.textContent = t('profile.usernameRequired', '请输入用户名'); fb.className = 'inline-feedback invalid'; return; }
-            fetch('/user/profile/update?username=' + encodeURIComponent(username) + '&email=' + encodeURIComponent(email), { method: 'PUT', headers: { 'X-XSRF-TOKEN': getCsrfToken() } })
+            fetch('/api/v1/user/profile/update?username=' + encodeURIComponent(username) + '&email=' + encodeURIComponent(email), { method: 'PUT', headers: { 'X-XSRF-TOKEN': getCsrfToken() } })
                 .then(function(r) { return r.json(); })
                 .then(function(r) {
                     if (r.code === 200) { fb.textContent = t('profile.saveSuccess', '保存成功'); fb.className = 'inline-feedback valid'; setTimeout(function() { fb.textContent = ''; fb.className = 'inline-feedback'; }, 3000); }
@@ -136,7 +136,7 @@
             var op = document.getElementById('oldPassword').value, np = document.getElementById('newPassword').value, fb = document.getElementById('passwordFeedback');
             if (!op || !np) { fb.textContent = t('profile.fillBoth', '请填写原密码和新密码'); fb.className = 'inline-feedback invalid'; return; }
             if (np.length < 6) { fb.textContent = t('register.pwdTooShort', '密码至少6位'); fb.className = 'inline-feedback invalid'; return; }
-            fetch('/user/profile/password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': getCsrfToken() }, body: JSON.stringify({ oldPassword: op, newPassword: np }) })
+            fetch('/api/v1/user/profile/password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': getCsrfToken() }, body: JSON.stringify({ oldPassword: op, newPassword: np }) })
                 .then(function(r) { return r.json(); })
                 .then(function(r) {
                     if (r.code === 200) { fb.textContent = t('profile.saveSuccess', '保存成功'); fb.className = 'inline-feedback valid'; document.getElementById('oldPassword').value = ''; document.getElementById('newPassword').value = ''; updatePasswordStrength(''); setTimeout(function() { fb.textContent = ''; fb.className = 'inline-feedback'; }, 3000); }
@@ -146,7 +146,7 @@
 
         $(document).ready(function() {
             initPage();
-            fetch('/api/user/current').then(function(r) { return r.json(); }).then(function(r) {
+            fetch('/api/v1/user/current').then(function(r) { return r.json(); }).then(function(r) {
                 if (r.code === 200 && r.data) {
                     document.getElementById('profileUsername').value = r.data.username || '';
                     document.getElementById('profileEmail').value = r.data.email || '';

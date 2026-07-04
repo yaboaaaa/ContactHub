@@ -64,7 +64,7 @@
         function escapeHtml(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 
         function refreshTable(){
-            fetch('/admin/users/data',{headers:{'X-XSRF-TOKEN':getCsrfToken()}}).then(function(r){return r.json()}).then(function(r){
+            fetch('/api/v1/admin/users/data',{headers:{'X-XSRF-TOKEN':getCsrfToken()}}).then(function(r){return r.json()}).then(function(r){
                 if(r.code===200&&r.data){
                     var tbody=document.getElementById('userTableBody');tbody.innerHTML='';
                     r.data.forEach(function(u){
@@ -87,7 +87,7 @@
         function bindEvents(){
             document.querySelectorAll('.toggle-btn').forEach(function(btn){
                 btn.addEventListener('click',function(){
-                    fetch('/admin/users/'+this.dataset.id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'enabled='+(this.dataset.enabled==='true'?'false':'true')})
+                    fetch('/api/v1/admin/users/'+this.dataset.id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'enabled='+(this.dataset.enabled==='true'?'false':'true')})
                     .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
                     .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
                 });
@@ -101,7 +101,7 @@
         }
 
         document.getElementById('confirmDeleteBtn').addEventListener('click',function(){
-            fetch('/admin/users/'+this.dataset.id,{method:'DELETE',headers:{'X-XSRF-TOKEN':getCsrfToken()}})
+            fetch('/api/v1/admin/users/'+this.dataset.id,{method:'DELETE',headers:{'X-XSRF-TOKEN':getCsrfToken()}})
             .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');refreshTable();bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
             .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
         });
@@ -116,7 +116,7 @@
 
         document.getElementById('saveUserBtn').addEventListener('click',function(){
             var fd=new URLSearchParams(new FormData(document.getElementById('addUserForm')));
-            fetch('/admin/users',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:fd.toString()})
+            fetch('/api/v1/admin/users',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:fd.toString()})
             .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();document.getElementById('addUserForm').reset();refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
             .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
         });

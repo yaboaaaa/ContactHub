@@ -95,7 +95,7 @@
         if (match) document.getElementById('csrfField').value = decodeURIComponent(match[1]);
 
         function loadCaptcha() {
-            fetch('/captcha')
+            fetch('/api/v1/captcha')
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
                     if (data.enabled) {
