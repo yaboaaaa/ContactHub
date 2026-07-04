@@ -60,7 +60,7 @@
         <div class="modal-header"><h5 class="modal-title">编辑用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <input type="hidden" id="editUserId">
-            <div class="mb-3"><label class="form-label">用户名</label><input type="text" class="form-control" id="editUsername" disabled></div>
+            <div class="mb-3"><label class="form-label">用户名</label><input type="text" class="form-control" id="editUsername"></div>
             <div class="mb-3"><label class="form-label">昵称</label><input type="text" class="form-control" id="editNickname" maxlength="50"></div>
             <div class="mb-3"><label class="form-label">邮箱</label><input type="email" class="form-control" id="editEmail"></div>
         </div>
@@ -143,9 +143,12 @@
 
         document.getElementById('saveEditBtn').addEventListener('click',function(){
             var id=document.getElementById('editUserId').value;
+            var username=document.getElementById('editUsername').value.trim();
             var nickname=document.getElementById('editNickname').value.trim();
             var email=document.getElementById('editEmail').value.trim();
+            if(!username||!/^[a-zA-Z]{4,}$/.test(username)){showAlert('用户名必须为英文，至少4位','danger');return;}
             var params=new URLSearchParams();
+            params.append('username',username);
             params.append('nickname',nickname);
             params.append('email',email);
             fetch('/api/v1/admin/users/'+id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:params.toString()})
