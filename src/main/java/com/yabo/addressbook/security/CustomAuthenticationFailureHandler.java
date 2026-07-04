@@ -11,6 +11,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationFa
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Component
@@ -37,7 +39,6 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         Locale locale = request.getLocale();
 
-        // Build the appropriate error message
         String errorMsg;
         if (loginAttemptService.isLocked(ip)) {
             long remainingSec = loginAttemptService.getLockTimeRemainingSeconds(ip);
@@ -53,9 +54,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
             errorMsg = messageSource.getMessage("login.error.remaining", new Object[]{remaining}, locale);
         }
 
-        // Store error message in session for the login page to display
-        request.getSession().setAttribute("loginErrorMsg", errorMsg);
-
-        super.onAuthenticationFailure(request, response, exception);
+        String encodedMsg = URLEncoder.encode(errorMsg, StandardCharsets.UTF_8);
+        response.sendRedirect("/login.html?error&msg=" + encodedMsg);
     }
 }
