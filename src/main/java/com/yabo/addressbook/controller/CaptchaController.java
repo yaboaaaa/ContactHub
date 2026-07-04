@@ -1,26 +1,22 @@
 package com.yabo.addressbook.controller;
 
 import com.yabo.addressbook.config.CaptchaProperties;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 @Controller
-@RequestMapping("/api/v1")
 public class CaptchaController {
 
     @Value("${captcha.enabled:false}")
@@ -34,16 +30,20 @@ public class CaptchaController {
         this.captchaProperties = captchaProperties;
     }
 
-    @GetMapping("/captcha")
-    @ResponseBody
-    public Object getCaptcha(HttpSession session) {
+    @GetMapping(value = "/captcha", produces = MediaType.IMAGE_PNG_VALUE)
+    public void getCaptcha(HttpSession session, HttpServletResponse response) throws Exception {
+        response.setContentType("image/png");
+        response.setHeader("Cache-Control", "no-cache, no-store");
+        response.setHeader("Pragma", "no-cache");
+
         if (!captchaEnabled) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("enabled", false);
-            return result;
+            // Return 1x1 transparent PNG
+            BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            ImageIO.write(img, "png", response.getOutputStream());
+            return;
         }
 
-        int op = RANDOM.nextInt(4); // 0=addition, 1=subtraction, 2=multiplication, 3=integral
+        int op = RANDOM.nextInt(4);
         int answer;
         String expression;
         boolean isIntegral = false;
@@ -51,10 +51,8 @@ public class CaptchaController {
 
         if (op == 3) {
             isIntegral = true;
-            // Load integrals from config; fallback to hardcoded defaults
             List<CaptchaProperties.IntegralProblem> problems = captchaProperties.getIntegrals();
             if (problems == null || problems.isEmpty()) {
-                // Fallback default problems
                 answer = 2;
                 integralLower = "0";
                 integralUpper = "2";
@@ -66,52 +64,43 @@ public class CaptchaController {
                 integralUpper = problem.getUpperText();
                 integralText = problem.getText();
             }
-            expression = null; // not used for integral rendering
+            expression = null;
         } else {
             int a, b;
             switch (op) {
-                case 0: // Addition
+                case 0:
                     a = RANDOM.nextInt(90) + 10;
                     b = RANDOM.nextInt(90) + 10;
                     answer = a + b;
                     expression = a + "+" + b + "=?";
                     break;
-                case 1: // Subtraction
+                case 1:
                     a = RANDOM.nextInt(80) + 20;
                     b = RANDOM.nextInt(a - 1) + 1;
                     answer = a - b;
                     expression = a + "-" + b + "=?";
                     break;
-                default: // Multiplication
+                default:
                     a = RANDOM.nextInt(8) + 2;
                     b = RANDOM.nextInt(8) + 2;
                     answer = a * b;
-                    expression = a + "×" + b + "=?";
+                    expression = a + "\u00d7" + b + "=?";
                     break;
             }
         }
 
-        // Generate image
         int width = isIntegral ? 260 : 130;
         int height = 48;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
 
-        // Anti-aliasing for better quality
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Background
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, width, height);
 
-        // Draw noise lines
         g.setColor(new Color(220, 220, 220));
         for (int i = 0; i < 8; i++) {
-            int x1 = RANDOM.nextInt(width);
-            int y1 = RANDOM.nextInt(height);
-            int x2 = RANDOM.nextInt(width);
-            int y2 = RANDOM.nextInt(height);
-            g.drawLine(x1, y1, x2, y2);
+            g.drawLine(RANDOM.nextInt(width), RANDOM.nextInt(height), RANDOM.nextInt(width), RANDOM.nextInt(height));
         }
 
         if (isIntegral) {
@@ -122,73 +111,37 @@ public class CaptchaController {
 
         g.dispose();
 
-        // Convert to base64
-        String base64Image;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            ImageIO.write(image, "png", baos);
-            base64Image = "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray());
-        } catch (Exception e) {
-            Map<String, Object> result = new HashMap<>();
-            result.put("enabled", false);
-            return result;
-        }
-
-        // Store captcha answer in session
         session.setAttribute("captcha", String.valueOf(answer));
-
-        // Return base64 image
-        Map<String, Object> result = new HashMap<>();
-        result.put("enabled", true);
-        result.put("image", base64Image);
-        return result;
+        ImageIO.write(image, "png", response.getOutputStream());
     }
 
-    /** Draw integral notation: ∫ with limits, then function text, then dx */
     private void drawIntegral(Graphics2D g, String lowerText, String upperText, String funcText,
                               int width, int height) {
-        // Fonts
         Font integralFont = new Font("Serif", Font.BOLD, 30);
         Font limitFont = new Font("Arial", Font.BOLD, 14);
         Font funcFont = new Font("Arial", Font.BOLD, 20);
-
-        // Colors
-        Color textColor = new Color(
-            RANDOM.nextInt(80),
-            RANDOM.nextInt(80),
-            RANDOM.nextInt(80) + 80
-        );
-
-        // Center of the image
+        Color textColor = new Color(RANDOM.nextInt(80), RANDOM.nextInt(80), RANDOM.nextInt(80) + 80);
         int centerY = height / 2;
 
-        // Draw integral sign
         g.setFont(integralFont);
         g.setColor(textColor);
         FontMetrics fm = g.getFontMetrics();
         int integralX = 10;
-        int integralY = centerY + fm.getAscent() / 2 + 2;
-        g.drawString("\u222B", integralX, integralY); // ∫
+        g.drawString("\u222b", integralX, centerY + fm.getAscent() / 2 + 2);
 
-        // Draw upper/lower limits beside the integral sign
         g.setFont(limitFont);
-        g.setColor(textColor);
-        int limitX = integralX + fm.stringWidth("\u222B") - 4;
+        int limitX = integralX + fm.stringWidth("\u222b") - 4;
         g.drawString(upperText, limitX, centerY - 8);
         g.drawString(lowerText, limitX, centerY + 18);
 
-        // Draw the function to the right
         g.setFont(funcFont);
         int funcX = limitX + 34;
-        int funcY = centerY + 8;
-        g.drawString(funcText, funcX, funcY);
+        g.drawString(funcText, funcX, centerY + 8);
 
-        // Draw "dx"
         FontMetrics funcFm = g.getFontMetrics();
-        int dxX = funcX + funcFm.stringWidth(funcText) + 5;
-        g.drawString("dx", dxX, funcY);
+        g.drawString("dx", funcX + funcFm.stringWidth(funcText) + 5, centerY + 8);
     }
 
-    /** Draw a regular arithmetic expression */
     private void drawExpression(Graphics2D g, String expression, int width, int height) {
         Font font = new Font("Arial", Font.BOLD, 22);
         g.setFont(font);
@@ -198,17 +151,13 @@ public class CaptchaController {
         int y = (height + fm.getAscent()) / 2 - 2;
 
         for (int i = 0; i < expression.length(); i++) {
-            String ch = String.valueOf(expression.charAt(i));
-            g.setColor(new Color(
-                    RANDOM.nextInt(80),
-                    RANDOM.nextInt(80),
-                    RANDOM.nextInt(80) + 80
-            ));
+            char ch = expression.charAt(i);
+            g.setColor(new Color(RANDOM.nextInt(80), RANDOM.nextInt(80), RANDOM.nextInt(80) + 80));
             AffineTransform old = g.getTransform();
-            g.rotate(Math.toRadians(RANDOM.nextInt(20) - 10), x + fm.charWidth(expression.charAt(i)) / 2.0, y);
-            g.drawString(ch, x, y);
+            g.rotate(Math.toRadians(RANDOM.nextInt(20) - 10), x + fm.charWidth(ch) / 2.0, y);
+            g.drawString(String.valueOf(ch), x, y);
             g.setTransform(old);
-            x += fm.charWidth(expression.charAt(i));
+            x += fm.charWidth(ch);
         }
     }
 }
