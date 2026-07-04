@@ -29,6 +29,7 @@
         .contact-count { font-size: 0.85rem; color: #6c757d; }
         .group-actions { display: inline-block; white-space: nowrap; }
         .group-actions .btn-link { text-decoration: none; line-height: 1; }
+        .list-group-item.active .group-actions .btn-link { color: #fff !important; }
         .contact-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #e9ecef; }
         .contact-avatar-placeholder { width: 40px; height: 40px; border-radius: 50%; background-color: #6c757d; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 600; }
         .card-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: #e9ecef; }
@@ -167,6 +168,39 @@
         </div></div>
     </div>
 
+    <!-- Create Group Modal -->
+    <div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" data-i18n="modal.createGroup">新建分组</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label"><span data-i18n="group.name">分组名称</span> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="inputGroupName" maxlength="50" autocomplete="off">
+                    <div class="invalid-feedback" id="groupNameFeedback"></div>
+                    <div class="form-text"><span id="groupNameCount">0</span>/50</div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-primary" id="submitGroupBtn" disabled data-i18n="btn.save">保存</button></div>
+        </div></div>
+    </div>
+
+    <!-- Edit Group Modal -->
+    <div class="modal fade" id="editGroupModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" data-i18n="modal.editGroup">编辑分组</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="editGroupId">
+                <div class="mb-3">
+                    <label class="form-label"><span data-i18n="group.name">分组名称</span> <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="inputEditGroupName" maxlength="50" autocomplete="off">
+                    <div class="invalid-feedback" id="editGroupNameFeedback"></div>
+                    <div class="form-text"><span id="editGroupNameCount">0</span>/50</div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-primary" id="submitEditGroupBtn" disabled data-i18n="btn.save">保存</button></div>
+        </div></div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/i18n.js"></script>
@@ -207,7 +241,7 @@
                 if (result.code === 200 && result.data) {
                     var gl = $('#groupList'), sg = $('#searchGroup'), ig = $('#inputGroup');
                     result.data.forEach(function(g) {
-                        gl.append('<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-group-id="'+g.id+'" data-group-name="'+escapeHtml(g.name)+'" data-default="'+g.isDefault+'" onclick="switchGroup(this.dataset.groupId)"><span>'+escapeHtml(g.name)+'</span><span class="group-actions" '+(g.isDefault?'style="display:none"':'')+' onclick="event.stopPropagation();"><button type="button" class="btn btn-link btn-sm p-0 text-primary" onclick="editGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.edit','编辑')+'">&#9998;</button><button type="button" class="btn btn-link btn-sm p-0 text-danger ms-2" onclick="deleteGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.delete','删除')+'">&#128465;</button></span></a>');
+                        gl.append('<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-group-id="'+g.id+'" data-group-name="'+escapeHtml(g.name)+'" data-default="'+g.isDefault+'" onclick="switchGroup(this.dataset.groupId)"><span>'+escapeHtml(g.name)+'</span><span class="group-actions" onclick="event.stopPropagation();"><button type="button" class="btn btn-link btn-sm p-0 text-primary" onclick="editGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.edit','编辑')+'">&#9998;</button>'+(g.isDefault?'':'<button type="button" class="btn btn-link btn-sm p-0 text-danger ms-2" onclick="deleteGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.delete','删除')+'">&#128465;</button>')+'</span></a>');
                         sg.append('<option value="'+g.id+'">'+escapeHtml(g.name)+'</option>');
                         ig.append('<option value="'+g.id+'">'+escapeHtml(g.name)+'</option>');
                     });
@@ -331,8 +365,110 @@
         function confirmDelete(id,name){currentDeleteId=id;$('#deleteConfirmText').text(t('contact.deleteConfirm','确定要将联系人 {0} 移入回收站吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();}
         $('#confirmDeleteBtn').on('click',function(){if(!currentDeleteId)return;$.ajax({url:'/api/v1/contacts/'+currentDeleteId,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('contact.movedToRecycle','已移入回收站'),'success');bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();loadContacts(currentPage);}else showAlert(r.message||t('contact.deleteFailed','删除失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
-        function createGroup(){var name=prompt(t('group.createPrompt','请输入新建分组名称：'));if(!name||!name.trim())return;$.ajax({url:'/api/v1/groups',method:'POST',contentType:'application/json',data:JSON.stringify({name:name.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');location.reload();}else showAlert(r.message||t('group.createFailed','创建失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
-        function editGroup(id,name){var n=prompt(t('group.renamePrompt','请输入新的分组名称：'),name);if(!n||!n.trim())return;$.ajax({url:'/api/v1/groups/'+id,method:'PUT',contentType:'application/json',data:JSON.stringify({name:n.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');location.reload();}else showAlert(r.message||t('group.updateFailed','更新失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        var groupModal = null;
+        function createGroup() {
+            var input = document.getElementById('inputGroupName');
+            input.value = '';
+            input.classList.remove('is-invalid');
+            document.getElementById('groupNameCount').textContent = '0';
+            document.getElementById('submitGroupBtn').disabled = true;
+            groupModal = groupModal || new bootstrap.Modal(document.getElementById('createGroupModal'));
+            groupModal.show();
+            setTimeout(function() { input.focus(); }, 300);
+        }
+        function validateGroupName() {
+            var input = document.getElementById('inputGroupName');
+            var feedback = document.getElementById('groupNameFeedback');
+            var val = input.value;
+            var trimmed = val.trim();
+            document.getElementById('groupNameCount').textContent = val.length;
+            if (!trimmed) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameEmpty', '分组名称不能为空');
+                document.getElementById('submitGroupBtn').disabled = true;
+                return false;
+            }
+            if (val.length > 50) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameTooLong', '分组名称不能超过50个字符');
+                document.getElementById('submitGroupBtn').disabled = true;
+                return false;
+            }
+            var exists = false;
+            $('#groupList a[data-group-id]').each(function() {
+                if ($(this).data('groupName') === trimmed) { exists = true; return false; }
+            });
+            if (exists) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameDuplicate', '该分组名称已存在');
+                document.getElementById('submitGroupBtn').disabled = true;
+                return false;
+            }
+            input.classList.remove('is-invalid');
+            document.getElementById('submitGroupBtn').disabled = false;
+            return true;
+        }
+        $('#inputGroupName').on('input', validateGroupName);
+        $('#submitGroupBtn').on('click', function() {
+            if (!validateGroupName()) return;
+            var name = document.getElementById('inputGroupName').value.trim();
+            $.ajax({url:'/api/v1/groups',method:'POST',contentType:'application/json',data:JSON.stringify({name:name}),success:function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');groupModal.hide();location.reload();}else showAlert(r.message||t('group.createFailed','创建失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});
+        });
+        $('#inputGroupName').on('keypress', function(e) { if (e.which === 13) { e.preventDefault(); $('#submitGroupBtn').click(); } });
+        var editGroupModal = null;
+        function editGroup(id, name) {
+            document.getElementById('editGroupId').value = id;
+            var input = document.getElementById('inputEditGroupName');
+            input.value = name;
+            input.classList.remove('is-invalid');
+            document.getElementById('editGroupNameCount').textContent = name.length;
+            document.getElementById('submitEditGroupBtn').disabled = false;
+            editGroupModal = editGroupModal || new bootstrap.Modal(document.getElementById('editGroupModal'));
+            editGroupModal.show();
+            setTimeout(function() { input.focus(); }, 300);
+        }
+        function validateEditGroupName() {
+            var input = document.getElementById('inputEditGroupName');
+            var feedback = document.getElementById('editGroupNameFeedback');
+            var val = input.value;
+            var trimmed = val.trim();
+            var editId = document.getElementById('editGroupId').value;
+            document.getElementById('editGroupNameCount').textContent = val.length;
+            if (!trimmed) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameEmpty', '分组名称不能为空');
+                document.getElementById('submitEditGroupBtn').disabled = true;
+                return false;
+            }
+            if (val.length > 50) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameTooLong', '分组名称不能超过50个字符');
+                document.getElementById('submitEditGroupBtn').disabled = true;
+                return false;
+            }
+            var exists = false;
+            $('#groupList a[data-group-id]').each(function() {
+                var gid = $(this).data('groupId');
+                if (String(gid) !== String(editId) && $(this).data('groupName') === trimmed) { exists = true; return false; }
+            });
+            if (exists) {
+                input.classList.add('is-invalid');
+                feedback.textContent = t('group.nameDuplicate', '该分组名称已存在');
+                document.getElementById('submitEditGroupBtn').disabled = true;
+                return false;
+            }
+            input.classList.remove('is-invalid');
+            document.getElementById('submitEditGroupBtn').disabled = false;
+            return true;
+        }
+        $('#inputEditGroupName').on('input', validateEditGroupName);
+        $('#submitEditGroupBtn').on('click', function() {
+            if (!validateEditGroupName()) return;
+            var id = document.getElementById('editGroupId').value;
+            var name = document.getElementById('inputEditGroupName').value.trim();
+            $.ajax({url:'/api/v1/groups/'+id,method:'PUT',contentType:'application/json',data:JSON.stringify({name:name}),success:function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');editGroupModal.hide();location.reload();}else showAlert(r.message||t('group.updateFailed','更新失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});
+        });
+        $('#inputEditGroupName').on('keypress', function(e) { if (e.which === 13) { e.preventDefault(); $('#submitEditGroupBtn').click(); } });
         function deleteGroup(id,name){if(!confirm(t('group.deleteConfirm','确定要删除分组 "{0}" 吗？').replace('{0}',name)))return;$.ajax({url:'/api/v1/groups/'+id,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');location.reload();}else showAlert(r.message||t('group.deleteFailed','删除失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
 
         function refreshUserAvatar(){var img=document.getElementById('currentUserAvatar');if(img)fetch('/api/v1/user/avatar').then(function(r){return r.json()}).then(function(d){if(d.code===200&&d.data&&d.data.url)img.src=d.data.url+'?t='+Date.now();else img.src=getAvatarSvgDataUrl('?',40,20);}).catch(function(){img.src=getAvatarSvgDataUrl('?',40,20);});}
