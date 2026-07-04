@@ -193,12 +193,12 @@
         function getContactAvatarHtml(c, sizeClass) {
             var dn = getDisplayName(c), init = getInitials(dn), fallback = getAvatarSvgDataUrl(init, 40, 16);
             var cls = sizeClass === 'card' ? 'card-avatar' : 'contact-avatar';
-            var src = c.avatarUrl ? c.avatarUrl : '/contacts/' + c.id + '/avatar';
-            return '<img src="'+src+'" class="'+cls+'" alt="头像" onerror="this.onerror=null;this.src=\''+fallback+'\'">';
+            var src = c.avatarUrl || fallback;
+            return '<img src="'+src+'" class="'+cls+'" alt="头像">';
         }
 
         function loadGroups() {
-            $.getJSON('/groups').done(function(result) {
+            $.getJSON('/api/v1/groups').done(function(result) {
                 if (result.code === 200 && result.data) {
                     var gl = $('#groupList'), sg = $('#searchGroup'), ig = $('#inputGroup');
                     result.data.forEach(function(g) {
@@ -215,7 +215,7 @@
             $('#loadingOverlay').addClass('active');
             var params = { keyword: $('#searchKeyword').val(), phone: $('#searchPhone').val(), province: $('#searchProvince').val(), city: $('#searchCity').val(), district: $('#searchDistrict').val(), company: $('#searchCompany').val(), jobTitle: $('#searchJobTitle').val(), groupId: currentGroupId || undefined, page: currentPage, size: 10 };
             Object.keys(params).forEach(function(k) { if (params[k] === '' || params[k] === undefined) delete params[k]; });
-            $.getJSON('/contacts/data', params).done(function(result) {
+            $.getJSON('/api/v1/contacts/data', params).done(function(result) {
                 if (result.code === 200 && result.data) renderContacts(result.data);
             }).fail(function() { showAlert(t('contact.loadingFailed', '加载联系人失败'), 'danger'); }).always(function() { $('#loadingOverlay').removeClass('active'); });
         }
@@ -260,11 +260,11 @@
         }
 
         function editContact(id) {
-            $.getJSON('/contacts/data', {page:0,size:1}).done(function(result) {
+            $.getJSON('/api/v1/contacts/data', {page:0,size:1}).done(function(result) {
                 if (result.code===200 && result.data) {
                     var contact = (result.data.content||[]).find(function(c){return c.id===id;});
                     if (contact) fillEditForm(contact);
-                    else $.ajax({url:'/contacts/'+id,method:'GET',success:function(r){if(r.code===200&&r.data)fillEditForm(r.data);}});
+                    else $.ajax({url:'/api/v1/contacts/'+id,method:'GET',success:function(r){if(r.code===200&&r.data)fillEditForm(r.data);}});
                 }
             });
         }
@@ -296,17 +296,17 @@
         });
 
         function confirmDelete(id,name){currentDeleteId=id;$('#deleteConfirmText').text(t('contact.deleteConfirm','确定要将联系人 {0} 移入回收站吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();}
-        $('#confirmDeleteBtn').on('click',function(){if(!currentDeleteId)return;$.ajax({url:'/contacts/'+currentDeleteId,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('contact.movedToRecycle','已移入回收站'),'success');bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();loadContacts(currentPage);}else showAlert(r.message||t('contact.deleteFailed','删除失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#confirmDeleteBtn').on('click',function(){if(!currentDeleteId)return;$.ajax({url:'/api/v1/contacts/'+currentDeleteId,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('contact.movedToRecycle','已移入回收站'),'success');bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();loadContacts(currentPage);}else showAlert(r.message||t('contact.deleteFailed','删除失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
-        function createGroup(){var name=prompt(t('group.createPrompt','请输入新建分组名称：'));if(!name||!name.trim())return;$.ajax({url:'/groups',method:'POST',contentType:'application/json',data:JSON.stringify({name:name.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');location.reload();}else showAlert(r.message||t('group.createFailed','创建失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
-        function editGroup(id,name){var n=prompt(t('group.renamePrompt','请输入新的分组名称：'),name);if(!n||!n.trim())return;$.ajax({url:'/groups/'+id,method:'PUT',contentType:'application/json',data:JSON.stringify({name:n.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');location.reload();}else showAlert(r.message||t('group.updateFailed','更新失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
-        function deleteGroup(id,name){if(!confirm(t('group.deleteConfirm','确定要删除分组 "{0}" 吗？').replace('{0}',name)))return;$.ajax({url:'/groups/'+id,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');location.reload();}else showAlert(r.message||t('group.deleteFailed','删除失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        function createGroup(){var name=prompt(t('group.createPrompt','请输入新建分组名称：'));if(!name||!name.trim())return;$.ajax({url:'/api/v1/groups',method:'POST',contentType:'application/json',data:JSON.stringify({name:name.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');location.reload();}else showAlert(r.message||t('group.createFailed','创建失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        function editGroup(id,name){var n=prompt(t('group.renamePrompt','请输入新的分组名称：'),name);if(!n||!n.trim())return;$.ajax({url:'/api/v1/groups/'+id,method:'PUT',contentType:'application/json',data:JSON.stringify({name:n.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');location.reload();}else showAlert(r.message||t('group.updateFailed','更新失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        function deleteGroup(id,name){if(!confirm(t('group.deleteConfirm','确定要删除分组 "{0}" 吗？').replace('{0}',name)))return;$.ajax({url:'/api/v1/groups/'+id,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');location.reload();}else showAlert(r.message||t('group.deleteFailed','删除失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
 
-        function refreshUserAvatar(){var img=document.getElementById('currentUserAvatar');if(img)fetch('/user/avatar').then(function(r){return r.json()}).then(function(d){if(d.code===200&&d.data&&d.data.url)img.src=d.data.url+'?t='+Date.now();else img.src=getAvatarSvgDataUrl('?',40,20);}).catch(function(){img.src=getAvatarSvgDataUrl('?',40,20);});}
+        function refreshUserAvatar(){var img=document.getElementById('currentUserAvatar');if(img)fetch('/api/v1/user/avatar').then(function(r){return r.json()}).then(function(d){if(d.code===200&&d.data&&d.data.url)img.src=d.data.url+'?t='+Date.now();else img.src=getAvatarSvgDataUrl('?',40,20);}).catch(function(){img.src=getAvatarSvgDataUrl('?',40,20);});}
 
-        $('#contactAvatarInput').on('change',function(){var f=this.files[0];if(!f)return;var id=$('#editContactId').val();if(!id){showAlert(t('contact.saveAvatarFirst','请先保存联系人后再上传头像'),'warning');return;}var fd=new FormData();fd.append('file',f);$.ajax({url:'/contacts/'+id+'/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');var u=r.data&&r.data.url?r.data.url:'/contacts/'+id+'/avatar?t='+Date.now();$('#contactAvatarPreview').attr('src',u);}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#contactAvatarInput').on('change',function(){var f=this.files[0];if(!f)return;var id=$('#editContactId').val();if(!id){showAlert(t('contact.saveAvatarFirst','请先保存联系人后再上传头像'),'warning');return;}var fd=new FormData();fd.append('file',f);fd.append('_csrf',getCsrfToken());$.ajax({url:'/api/v1/contacts/'+id+'/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');var u=r.data&&r.data.url?r.data.url+'?t='+Date.now():'';if(u)$('#contactAvatarPreview').attr('src',u);bootstrap.Modal.getInstance(document.getElementById('addContactModal')).hide();}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
-        $('#avatarUploadForm').on('submit',function(e){e.preventDefault();var fd=new FormData(this);$.ajax({url:'/user/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');refreshUserAvatar();bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide();}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+        $('#avatarUploadForm').on('submit',function(e){e.preventDefault();var fd=new FormData(this);fd.append('_csrf',getCsrfToken());$.ajax({url:'/api/v1/user/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');refreshUserAvatar();bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide();}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
 
         $('#searchKeyword,#searchPhone').on('keypress',function(e){if(e.which===13)searchContacts();});
 

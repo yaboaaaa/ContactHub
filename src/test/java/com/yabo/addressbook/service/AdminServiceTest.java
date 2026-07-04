@@ -204,7 +204,7 @@ class AdminServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User result = adminService.updateUser(1L, "new@example.com", false);
+        User result = adminService.updateUser(1L, null, null, "new@example.com", false);
 
         assertThat(result.getEmail()).isEqualTo("new@example.com");
         assertThat(result.getEnabled()).isFalse();
@@ -214,7 +214,7 @@ class AdminServiceTest {
     void updateUser_shouldThrowEntityNotFoundException_whenUserNotFound() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminService.updateUser(999L, "email", true))
+        assertThatThrownBy(() -> adminService.updateUser(999L, null, null, "email", true))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("用户不存在");
     }

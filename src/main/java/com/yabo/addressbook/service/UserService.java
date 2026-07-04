@@ -28,7 +28,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User register(String username, String password, String email) {
+    public User register(String username, String password, String email, String nickname) {
         String usernameError = ValidationUtil.validateUsername(username);
         if (usernameError != null) {
             throw new BusinessException(usernameError);
@@ -53,6 +53,7 @@ public class UserService {
         user.setUsername(trimmedUsername);
         user.setPassword(passwordEncoder.encode(password));
         user.setEmail(ValidationUtil.getTrimmedEmail(email));
+        user.setNickname(nickname != null && !nickname.trim().isEmpty() ? nickname.trim() : generateRandomNickname());
         user.setRole("USER");
         user.setEnabled(true);
 
@@ -78,7 +79,7 @@ public class UserService {
         return userRepository.existsByUsername(username);
     }
 
-    public void updateProfile(String currentUsername, String newUsername, String email) {
+    public void updateProfile(String currentUsername, String newUsername, String email, String nickname) {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new BusinessException("用户不存在"));
 
@@ -102,6 +103,10 @@ public class UserService {
             user.setEmail(ValidationUtil.getTrimmedEmail(email));
         }
 
+        if (nickname != null) {
+            user.setNickname(nickname.trim());
+        }
+
         userRepository.save(user);
     }
 
@@ -113,5 +118,15 @@ public class UserService {
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    private static final String[] ADJECTIVES = {"快乐的", "聪明的", "勇敢的", "温柔的", "活泼的", "神秘的", "优雅的", "酷酷的", "阳光的", "安静的"};
+    private static final String[] NOUNS = {"小猫", "小狗", "兔子", "熊猫", "海豚", "松鼠", "狐狸", "企鹅", "小鹿", "蝴蝶"};
+
+    public String generateRandomNickname() {
+        String adj = ADJECTIVES[(int) (Math.random() * ADJECTIVES.length)];
+        String noun = NOUNS[(int) (Math.random() * NOUNS.length)];
+        String suffix = String.format("%04d", (int) (Math.random() * 10000));
+        return adj + noun + suffix;
     }
 }

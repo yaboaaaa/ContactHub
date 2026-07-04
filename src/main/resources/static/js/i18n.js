@@ -40,7 +40,7 @@
 
     window.loadI18n = function() {
         var lang = getLang();
-        return fetch('/api/i18n?lang=' + lang)
+        return fetch('/api/v1/i18n?lang=' + lang)
             .then(function(res) { return res.json(); })
             .then(function(result) {
                 if (result.code === 200 && result.data) {

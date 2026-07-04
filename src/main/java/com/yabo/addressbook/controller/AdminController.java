@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/v1/admin")
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "管理员接口", description = "管理员专用接口，需要ADMIN角色权限")
 public class AdminController {
@@ -57,9 +57,11 @@ public class AdminController {
     @Operation(summary = "更新用户", description = "管理员更新用户信息")
     @ApiResponse(responseCode = "200", description = "更新成功")
     public ApiResult<Void> updateUser(@Parameter(description = "用户ID") @PathVariable Long id,
+                                      @Parameter(description = "用户名") @RequestParam(required = false) String username,
+                                      @Parameter(description = "昵称") @RequestParam(required = false) String nickname,
                                       @Parameter(description = "邮箱") @RequestParam(required = false) String email,
                                       @Parameter(description = "是否启用") @RequestParam(required = false) Boolean enabled) {
-        adminService.updateUser(id, email, enabled);
+        adminService.updateUser(id, username, nickname, email, enabled);
         return ApiResult.success();
     }
 

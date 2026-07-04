@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 @RestController
-@RequestMapping("/api/i18n")
+@RequestMapping("/api/v1/i18n")
 public class I18nApiController {
 
     private final MessageSource messageSource;

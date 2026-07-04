@@ -56,6 +56,21 @@
             </div>
 
             <div class="mb-3">
+                <label for="nickname" class="form-label">昵称（选填）</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-badge" viewBox="0 0 16 16">
+                            <path d="M6.5 2a.5.5 0 0 0 0 1H6v1a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V3h.5a.5.5 0 0 0 0-1h-9zM11 3a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6z"/>
+                            <path d="M9.5 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+                            <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3z"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="nickname" name="nickname" class="form-control" placeholder="请输入昵称" maxlength="50" />
+                </div>
+                <div id="nicknameFeedback" class="form-feedback"></div>
+            </div>
+
+            <div class="mb-3">
                 <label data-i18n="register.password" for="password" class="form-label">密码</label>
                 <div class="input-group">
                     <span class="input-group-text">
@@ -79,6 +94,7 @@
                     </span>
                     <input type="email" id="email" name="email" class="form-control" data-i18n-placeholder="register.email.placeholder" placeholder="请输入邮箱（选填）" />
                 </div>
+                <div id="emailFeedback" class="form-feedback"></div>
             </div>
 
             <div class="mb-3" id="captchaSection" style="display:none;">
@@ -109,7 +125,7 @@
     <script src="/js/i18n.js"></script>
     <script>
         function loadCaptcha() {
-            fetch('/captcha').then(function(r){return r.json()}).then(function(data){
+            fetch('/api/v1/captcha').then(function(r){return r.json()}).then(function(data){
                 if (data.enabled) {
                     document.getElementById('captchaSection').style.display = 'block';
                     document.getElementById('captchaImage').src = data.image;
@@ -120,12 +136,37 @@
         }
 
         var usernameCheckTimer = null;
+        var emailCheckTimer = null;
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function checkEmail() {
+            var fb = document.getElementById('emailFeedback');
+            var email = document.getElementById('email').value.trim();
+            if (!email) { fb.textContent = ''; fb.className = 'form-feedback'; return true; }
+            if (!isValidEmail(email)) {
+                fb.textContent = '邮箱格式不正确';
+                fb.className = 'form-feedback invalid';
+                return false;
+            }
+            fb.textContent = '';
+            fb.className = 'form-feedback';
+            return true;
+        }
+
         function checkUsername(username) {
             var fb = document.getElementById('usernameFeedback');
             if (!username || !username.trim()) { fb.textContent = ''; fb.className = 'form-feedback'; return; }
+            if (!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username.trim())) {
+                fb.textContent = '用户名必须以英文开头，仅含英文和数字，至少4位';
+                fb.className = 'form-feedback invalid';
+                return;
+            }
             fb.textContent = t('register.usernameChecking', '检查中...');
             fb.className = 'form-feedback text-muted';
-            fetch('/api/register/check-username?username=' + encodeURIComponent(username.trim()))
+            fetch('/api/v1/register/check-username?username=' + encodeURIComponent(username.trim()))
                 .then(function(r){return r.json()}).then(function(result){
                     if (username !== document.getElementById('username').value) return;
                     if (result.code === 200 && result.data === true) {
@@ -165,13 +206,21 @@
 
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            var username = document.getElementById('username').value.trim();
+            if (!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username)) {
+                document.getElementById('usernameFeedback').textContent = '用户名必须以英文开头，仅含英文和数字，至少4位';
+                document.getElementById('usernameFeedback').className = 'form-feedback invalid';
+                return;
+            }
+            if (!checkEmail()) return;
             var data = {
-                username: document.getElementById('username').value.trim(),
+                username: username,
                 password: document.getElementById('password').value,
-                email: document.getElementById('email').value.trim()
+                email: document.getElementById('email').value.trim(),
+                nickname: document.getElementById('nickname').value.trim()
             };
             var captcha = document.getElementById('captchaInput').value;
-            var url = '/api/register' + (captcha ? '?captcha=' + encodeURIComponent(captcha) : '');
+            var url = '/api/v1/register' + (captcha ? '?captcha=' + encodeURIComponent(captcha) : '');
             fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': getCsrfToken() },
@@ -198,14 +247,33 @@
         loadI18n().then(function() {
             loadCaptcha();
             document.getElementById('captchaImage').addEventListener('click', loadCaptcha);
-            var usernameInput = document.getElementById('username');
-            usernameInput.addEventListener('input', function() {
-                clearTimeout(usernameCheckTimer);
-                usernameCheckTimer = setTimeout(function() { checkUsername(usernameInput.value); }, 300);
-            });
-            usernameInput.addEventListener('blur', function() { checkUsername(this.value); });
-            document.getElementById('password').addEventListener('input', function() { updatePasswordStrength(this.value); });
         });
+
+        // Fetch random nickname for pre-fill
+        fetch('/api/v1/register/random-nickname')
+            .then(function(r) { return r.json(); })
+            .then(function(r) {
+                if (r.code === 200 && r.data) {
+                    document.getElementById('nickname').value = r.data;
+                }
+            })
+            .catch(function() {});
+
+        var usernameInput = document.getElementById('username');
+        usernameInput.addEventListener('input', function() {
+            clearTimeout(usernameCheckTimer);
+            var val = this.value;
+            usernameCheckTimer = setTimeout(function() { checkUsername(val); }, 300);
+        });
+        usernameInput.addEventListener('blur', function() { checkUsername(this.value); });
+        document.getElementById('password').addEventListener('input', function() { updatePasswordStrength(this.value); });
+        var emailInput = document.getElementById('email');
+        emailInput.addEventListener('input', function() {
+            clearTimeout(emailCheckTimer);
+            var val = this.value;
+            emailCheckTimer = setTimeout(function() { checkEmail(); }, 300);
+        });
+        emailInput.addEventListener('blur', function() { checkEmail(); });
     </script>
 </body>
 </html>

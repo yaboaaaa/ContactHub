@@ -28,6 +28,9 @@ public class User {
     @Column(length = 100)
     private String email;
 
+    @Column(length = 50)
+    private String nickname;
+
     @Column(nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'USER'")
     private String role = "USER";
 
@@ -83,6 +86,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getRole() {

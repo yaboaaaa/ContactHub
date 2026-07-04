@@ -26,7 +26,7 @@
         <div id="alertContainer"></div>
         <div class="bg-white rounded shadow-sm p-3"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr>
-                <th data-i18n="admin.id">ID</th><th data-i18n="admin.username">用户名</th><th data-i18n="admin.email">邮箱</th><th data-i18n="admin.role">角色</th><th data-i18n="admin.status">状态</th><th data-i18n="admin.createdAt">创建时间</th><th data-i18n="admin.actions">操作</th>
+                <th data-i18n="admin.id">ID</th><th data-i18n="admin.username">用户名</th><th>昵称</th><th data-i18n="admin.email">邮箱</th><th data-i18n="admin.role">角色</th><th data-i18n="admin.status">状态</th><th data-i18n="admin.createdAt">创建时间</th><th data-i18n="admin.actions">操作</th>
             </tr></thead>
             <tbody id="userTableBody"></tbody>
         </table></div></div>
@@ -56,6 +56,17 @@
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-i18n="btn.confirm">确认删除</button></div>
     </div></div></div>
 
+    <div class="modal fade" id="editUserModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">编辑用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="editUserId">
+            <div class="mb-3"><label class="form-label">用户名</label><input type="text" class="form-control" id="editUsername"></div>
+            <div class="mb-3"><label class="form-label">昵称</label><input type="text" class="form-control" id="editNickname" maxlength="50"></div>
+            <div class="mb-3"><label class="form-label">邮箱</label><input type="email" class="form-control" id="editEmail"></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" id="saveEditBtn">保存</button></div>
+    </div></div></div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/i18n.js"></script>
@@ -64,19 +75,19 @@
         function escapeHtml(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 
         function refreshTable(){
-            fetch('/admin/users/data',{headers:{'X-XSRF-TOKEN':getCsrfToken()}}).then(function(r){return r.json()}).then(function(r){
+            fetch('/api/v1/admin/users/data',{headers:{'X-XSRF-TOKEN':getCsrfToken()}}).then(function(r){return r.json()}).then(function(r){
                 if(r.code===200&&r.data){
                     var tbody=document.getElementById('userTableBody');tbody.innerHTML='';
                     r.data.forEach(function(u){
                         var isAdmin=u.role==='ADMIN';
                         var ct=u.createdAt?new Date(u.createdAt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
                         var tr=document.createElement('tr');
-                        tr.innerHTML='<td>'+u.id+'</td><td>'+escapeHtml(u.username)+'</td><td>'+escapeHtml(u.email||'-')+'</td>'
+                        tr.innerHTML='<td>'+u.id+'</td><td>'+escapeHtml(u.username)+'</td><td>'+escapeHtml(u.nickname||'-')+'</td><td>'+escapeHtml(u.email||'-')+'</td>'
                             +(isAdmin?'<td><span class="badge badge-admin">'+t('admin.role.admin','管理员')+'</span></td>':'<td><span class="badge badge-user">'+t('admin.role.user','普通用户')+'</span></td>')
                             +(u.enabled?'<td><span class="badge badge-enabled">'+t('admin.status.enabled','启用')+'</span></td>':'<td><span class="badge badge-disabled">'+t('admin.status.disabled','禁用')+'</span></td>')
                             +'<td>'+ct+'</td><td>'
-                            +(isAdmin?'<div class="d-flex gap-1"><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button></div>'
-                            :'<div class="d-flex gap-1"><button class="btn btn-sm btn-warning toggle-btn" data-id="'+u.id+'" data-enabled="'+u.enabled+'">'+(u.enabled?t('admin.btn.disable','禁用'):t('admin.btn.enable','启用'))+'</button><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button><button class="btn btn-sm btn-danger delete-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'">'+t('admin.btn.delete','删除')+'</button></div>')+'</td>';
+                            +(isAdmin?'<div class="d-flex gap-1"><button class="btn btn-sm btn-primary edit-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" data-nickname="'+escapeHtml(u.nickname||'')+'" data-email="'+escapeHtml(u.email||'')+'">'+t('btn.edit','编辑')+'</button><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button></div>'
+                            :'<div class="d-flex gap-1"><button class="btn btn-sm btn-primary edit-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" data-nickname="'+escapeHtml(u.nickname||'')+'" data-email="'+escapeHtml(u.email||'')+'">'+t('btn.edit','编辑')+'</button><button class="btn btn-sm btn-warning toggle-btn" data-id="'+u.id+'" data-enabled="'+u.enabled+'">'+(u.enabled?t('admin.btn.disable','禁用'):t('admin.btn.enable','启用'))+'</button><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button><button class="btn btn-sm btn-danger delete-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'">'+t('admin.btn.delete','删除')+'</button></div>')+'</td>';
                         tbody.appendChild(tr);
                     });
                     bindEvents();
@@ -85,9 +96,18 @@
         }
 
         function bindEvents(){
+            document.querySelectorAll('.edit-btn').forEach(function(btn){
+                btn.addEventListener('click',function(){
+                    document.getElementById('editUserId').value=this.dataset.id;
+                    document.getElementById('editUsername').value=this.dataset.username;
+                    document.getElementById('editNickname').value=this.dataset.nickname;
+                    document.getElementById('editEmail').value=this.dataset.email;
+                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                });
+            });
             document.querySelectorAll('.toggle-btn').forEach(function(btn){
                 btn.addEventListener('click',function(){
-                    fetch('/admin/users/'+this.dataset.id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'enabled='+(this.dataset.enabled==='true'?'false':'true')})
+                    fetch('/api/v1/admin/users/'+this.dataset.id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'enabled='+(this.dataset.enabled==='true'?'false':'true')})
                     .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
                     .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
                 });
@@ -101,7 +121,7 @@
         }
 
         document.getElementById('confirmDeleteBtn').addEventListener('click',function(){
-            fetch('/admin/users/'+this.dataset.id,{method:'DELETE',headers:{'X-XSRF-TOKEN':getCsrfToken()}})
+            fetch('/api/v1/admin/users/'+this.dataset.id,{method:'DELETE',headers:{'X-XSRF-TOKEN':getCsrfToken()}})
             .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');refreshTable();bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
             .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
         });
@@ -116,8 +136,23 @@
 
         document.getElementById('saveUserBtn').addEventListener('click',function(){
             var fd=new URLSearchParams(new FormData(document.getElementById('addUserForm')));
-            fetch('/admin/users',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:fd.toString()})
+            fetch('/api/v1/admin/users',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:fd.toString()})
             .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();document.getElementById('addUserForm').reset();refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
+            .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
+        });
+
+        document.getElementById('saveEditBtn').addEventListener('click',function(){
+            var id=document.getElementById('editUserId').value;
+            var username=document.getElementById('editUsername').value.trim();
+            var nickname=document.getElementById('editNickname').value.trim();
+            var email=document.getElementById('editEmail').value.trim();
+            if(!username||!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username)){showAlert('用户名必须以英文开头，仅含英文和数字，至少4位','danger');return;}
+            var params=new URLSearchParams();
+            params.append('username',username);
+            params.append('nickname',nickname);
+            params.append('email',email);
+            fetch('/api/v1/admin/users/'+id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:params.toString()})
+            .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
             .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
         });
 

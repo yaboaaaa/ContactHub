@@ -9,7 +9,7 @@ public final class ValidationUtil {
     );
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile(
-            "^[a-zA-Z0-9_]{3,20}$"
+            "^[a-zA-Z][a-zA-Z0-9]{3,19}$"
     );
 
     private ValidationUtil() {
@@ -53,7 +53,7 @@ public final class ValidationUtil {
         }
         String trimmed = username.trim();
         if (!USERNAME_PATTERN.matcher(trimmed).matches()) {
-            return "用户名只能包含字母、数字和下划线，长度3-20位";
+            return "用户名必须以英文开头，仅含英文和数字，长度4-20位";
         }
         return null; // valid
     }

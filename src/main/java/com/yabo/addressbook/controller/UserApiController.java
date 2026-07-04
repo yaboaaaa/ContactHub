@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/user")
 public class UserApiController {
 
     private final UserRepository userRepository;
@@ -34,6 +34,7 @@ public class UserApiController {
         data.put("username", user.getUsername());
         data.put("email", user.getEmail());
         data.put("avatarUrl", user.getAvatarUrl());
+        data.put("nickname", user.getNickname());
         data.put("role", user.getRole());
         data.put("isAdmin", "ADMIN".equals(user.getRole()));
         return ApiResult.success(data);

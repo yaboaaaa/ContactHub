@@ -1,5 +1,8 @@
 server:
   port: 8087
+  error:
+    whitelabel:
+      enabled: false
   servlet:
     session:
       timeout: 30m
@@ -16,11 +19,6 @@ spring:
       hibernate:
         jdbc:
           time_zone: Asia/Shanghai
-
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
-    mode: HTML
 
   servlet:
     multipart:
