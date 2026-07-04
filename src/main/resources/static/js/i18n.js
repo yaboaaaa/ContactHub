@@ -2,11 +2,6 @@
 (function() {
     window.i18nData = {};
 
-    function getCookie(name) {
-        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-        return match ? decodeURIComponent(match[2]) : '';
-    }
-
     function applyTranslations(messages) {
         if (!messages) return;
         window.i18nData = messages;
@@ -34,8 +29,18 @@
         return window.i18nData[key] || fallback || key;
     };
 
+    window.getLang = function() {
+        return localStorage.getItem('site_lang') || 'zh';
+    };
+
+    window.setLang = function(lang) {
+        localStorage.setItem('site_lang', lang);
+        location.reload();
+    };
+
     window.loadI18n = function() {
-        return fetch('/api/i18n')
+        var lang = getLang();
+        return fetch('/api/i18n?lang=' + lang)
             .then(function(res) { return res.json(); })
             .then(function(result) {
                 if (result.code === 200 && result.data) {
@@ -45,10 +50,5 @@
             .catch(function() {
                 // Fallback to hardcoded defaults in HTML
             });
-    };
-
-    window.setLang = function(lang) {
-        document.cookie = 'lang=' + lang + ';path=/;max-age=31536000';
-        location.reload();
     };
 })();
