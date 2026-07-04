@@ -29,6 +29,20 @@ public class GroupService {
         return contactGroupRepository.findByUserIdOrderBySortOrderAscCreatedAtAsc(userId);
     }
 
+    public boolean existsByName(Long userId, String name, Long excludeId) {
+        if (name == null || name.trim().isEmpty()) {
+            return false;
+        }
+        Optional<ContactGroup> existing = contactGroupRepository.findByUserIdAndName(userId, name.trim());
+        if (existing.isEmpty()) {
+            return false;
+        }
+        if (excludeId != null && existing.get().getId().equals(excludeId)) {
+            return false;
+        }
+        return true;
+    }
+
     public ContactGroup createGroup(Long userId, String name) {
         if (userId == null) {
             throw new BusinessException("用户ID不能为空");
@@ -65,7 +79,10 @@ public class GroupService {
             throw new BusinessException("无权操作该分组");
         }
 
-        // 默认分组可以更新名称
+        if (Boolean.TRUE.equals(group.getIsDefault())) {
+            throw new BusinessException("默认分组名称不可修改");
+        }
+
         String trimmedName = newName.trim();
 
         // 检查名称唯一性（排除当前分组）
