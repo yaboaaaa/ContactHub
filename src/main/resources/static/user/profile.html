@@ -52,6 +52,7 @@
 
         <div class="section-card"><div class="section-header" data-i18n="profile.title">个人信息</div><div class="section-body">
             <div class="form-group"><label for="profileUsername" data-i18n="register.username">用户名</label><input type="text" id="profileUsername" class="form-control"></div>
+            <div class="form-group"><label for="profileNickname">昵称</label><input type="text" id="profileNickname" class="form-control" placeholder="请输入昵称" maxlength="50"></div>
             <div class="form-group"><label for="profileEmail" data-i18n="register.email">邮箱</label><input type="email" id="profileEmail" class="form-control" data-i18n-placeholder="register.email.placeholder" placeholder="请输入邮箱"></div>
             <div id="profileFeedback" class="inline-feedback"></div>
             <div class="btn-row"><button type="button" class="btn btn-primary btn-save" id="saveProfileBtn"><i class="bi bi-check-lg me-1"></i><span data-i18n="btn.save">保存</span></button></div>
@@ -107,10 +108,11 @@
 
         document.getElementById('saveProfileBtn').addEventListener('click', function() {
             var username = document.getElementById('profileUsername').value.trim();
+            var nickname = document.getElementById('profileNickname').value.trim();
             var email = document.getElementById('profileEmail').value.trim();
             var fb = document.getElementById('profileFeedback');
             if (!username) { fb.textContent = t('profile.usernameRequired', '请输入用户名'); fb.className = 'inline-feedback invalid'; return; }
-            fetch('/api/v1/user/profile/update?username=' + encodeURIComponent(username) + '&email=' + encodeURIComponent(email), { method: 'PUT', headers: { 'X-XSRF-TOKEN': getCsrfToken() } })
+            fetch('/api/v1/user/profile/update?username=' + encodeURIComponent(username) + '&email=' + encodeURIComponent(email) + '&nickname=' + encodeURIComponent(nickname), { method: 'PUT', headers: { 'X-XSRF-TOKEN': getCsrfToken() } })
                 .then(function(r) { return r.json(); })
                 .then(function(r) {
                     if (r.code === 200) { fb.textContent = t('profile.saveSuccess', '保存成功'); fb.className = 'inline-feedback valid'; setTimeout(function() { fb.textContent = ''; fb.className = 'inline-feedback'; }, 3000); }
@@ -149,6 +151,7 @@
             fetch('/api/v1/user/current').then(function(r) { return r.json(); }).then(function(r) {
                 if (r.code === 200 && r.data) {
                     document.getElementById('profileUsername').value = r.data.username || '';
+                    document.getElementById('profileNickname').value = r.data.nickname || '';
                     document.getElementById('profileEmail').value = r.data.email || '';
                     if (r.data.avatarUrl) document.getElementById('profileAvatar').src = r.data.avatarUrl + '?t=' + Date.now();
                 }

@@ -77,11 +77,13 @@ public class AdminService {
         return savedUser;
     }
 
-    public User updateUser(Long userId, String email, Boolean enabled) {
+    public User updateUser(Long userId, String nickname, String email, Boolean enabled) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("用户不存在"));
 
-        // 不允许将角色改为 ADMIN
+        if (nickname != null) {
+            user.setNickname(nickname.trim());
+        }
         if (email != null && !email.isEmpty()) {
             user.setEmail(email);
         }

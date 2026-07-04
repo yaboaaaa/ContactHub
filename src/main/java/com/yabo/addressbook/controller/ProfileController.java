@@ -26,9 +26,10 @@ public class ProfileController {
 
     @PutMapping("/update")
     public ApiResult<Void> updateProfile(@RequestParam(required = false) String username,
-                                         @RequestParam(required = false) String email) {
+                                         @RequestParam(required = false) String email,
+                                         @RequestParam(required = false) String nickname) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        userService.updateProfile(currentUsername, username, email);
+        userService.updateProfile(currentUsername, username, email, nickname);
         return ApiResult.success();
     }
 

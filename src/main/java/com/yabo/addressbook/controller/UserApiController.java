@@ -34,6 +34,7 @@ public class UserApiController {
         data.put("username", user.getUsername());
         data.put("email", user.getEmail());
         data.put("avatarUrl", user.getAvatarUrl());
+        data.put("nickname", user.getNickname());
         data.put("role", user.getRole());
         data.put("isAdmin", "ADMIN".equals(user.getRole()));
         return ApiResult.success(data);

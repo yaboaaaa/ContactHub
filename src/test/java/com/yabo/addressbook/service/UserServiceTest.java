@@ -65,7 +65,7 @@ class UserServiceTest {
         savedGroup.setIsDefault(true);
         when(contactGroupRepository.save(any(ContactGroup.class))).thenReturn(savedGroup);
 
-        User result = userService.register(username, password, email);
+        User result = userService.register(username, password, email, null);
 
         assertThat(result).isNotNull();
         assertThat(result.getUsername()).isEqualTo(username);
@@ -98,7 +98,7 @@ class UserServiceTest {
         String username = "existinguser";
         when(userRepository.existsByUsername(username)).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.register(username, "password", "email@test.com"))
+        assertThatThrownBy(() -> userService.register(username, "password", "email@test.com", null))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("用户名已存在");
 
