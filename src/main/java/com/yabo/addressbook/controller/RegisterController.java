@@ -41,6 +41,9 @@ public class RegisterController {
         String username = body.get("username");
         String password = body.get("password");
         String email = body.get("email");
+        if (email != null && !email.trim().isEmpty() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            return ApiResult.error(400, "邮箱格式不正确");
+        }
         try {
             captchaService.validateCaptcha(session, captcha);
             userService.register(username, password, email);
