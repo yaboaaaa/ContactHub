@@ -3,6 +3,7 @@ package com.yabo.addressbook.controller;
 import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.dto.GroupRequest;
 import com.yabo.addressbook.entity.User;
+import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,7 +74,7 @@ public class GroupController {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("用户未登录");
+            throw new BusinessException("用户未登录");
         }
         Object principal = authentication.getPrincipal();
         String username;

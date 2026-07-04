@@ -4,6 +4,7 @@ import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.dto.ContactDTO;
 import com.yabo.addressbook.dto.PageDTO;
 import com.yabo.addressbook.entity.User;
+import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.ContactService;
 import com.yabo.addressbook.service.GroupService;
@@ -268,7 +269,7 @@ public class ContactController {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("用户未登录");
+            throw new BusinessException("用户未登录");
         }
         Object principal = authentication.getPrincipal();
         String username;

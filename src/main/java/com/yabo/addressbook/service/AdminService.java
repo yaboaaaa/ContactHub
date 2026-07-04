@@ -6,6 +6,7 @@ import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.ContactGroupRepository;
 import com.yabo.addressbook.repository.ContactRepository;
 import com.yabo.addressbook.repository.UserRepository;
+import com.yabo.addressbook.util.ValidationUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,14 +38,29 @@ public class AdminService {
     }
 
     public User createUser(String username, String password, String email) {
-        if (userRepository.existsByUsername(username)) {
+        String usernameError = ValidationUtil.validateUsername(username);
+        if (usernameError != null) {
+            throw new BusinessException(usernameError);
+        }
+
+        String passwordError = ValidationUtil.validatePassword(password);
+        if (passwordError != null) {
+            throw new BusinessException(passwordError);
+        }
+
+        String emailError = ValidationUtil.validateEmail(email);
+        if (emailError != null) {
+            throw new BusinessException(emailError);
+        }
+
+        if (userRepository.existsByUsername(username.trim())) {
             throw new BusinessException("用户名已存在");
         }
 
         User user = new User();
-        user.setUsername(username);
+        user.setUsername(username.trim());
         user.setPassword(passwordEncoder.encode(password));
-        user.setEmail(email);
+        user.setEmail(ValidationUtil.getTrimmedEmail(email));
         user.setRole("USER");
         user.setEnabled(true);
 

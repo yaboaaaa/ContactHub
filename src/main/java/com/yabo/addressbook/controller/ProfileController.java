@@ -43,29 +43,21 @@ public class ProfileController {
     @ResponseBody
     public ApiResult<Void> updateProfile(@RequestParam(required = false) String username,
                                          @RequestParam(required = false) String email) {
-        try {
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            userService.updateProfile(currentUsername, username, email);
-            return ApiResult.success();
-        } catch (BusinessException e) {
-            return ApiResult.error(400, e.getMessage());
-        }
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.updateProfile(currentUsername, username, email);
+        return ApiResult.success();
     }
 
     @PostMapping("/password")
     @ResponseBody
     public ApiResult<Void> updatePassword(@RequestBody Map<String, String> body) {
-        try {
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            String oldPassword = body.get("oldPassword");
-            String newPassword = body.get("newPassword");
-            if (oldPassword == null || newPassword == null) {
-                return ApiResult.error(400, "参数不完整");
-            }
-            userService.updatePassword(currentUsername, oldPassword, newPassword);
-            return ApiResult.success();
-        } catch (BusinessException e) {
-            return ApiResult.error(400, e.getMessage());
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || newPassword == null) {
+            throw new BusinessException("参数不完整");
         }
+        userService.updatePassword(currentUsername, oldPassword, newPassword);
+        return ApiResult.success();
     }
 }

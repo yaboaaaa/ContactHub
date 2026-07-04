@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -20,7 +21,19 @@ public class GlobalExceptionHandler {
 
     private boolean isAjaxRequest(HttpServletRequest request) {
         String requestedWith = request.getHeader("X-Requested-With");
-        return "XMLHttpRequest".equals(requestedWith);
+        if ("XMLHttpRequest".equals(requestedWith)) {
+            return true;
+        }
+        String accept = request.getHeader("Accept");
+        if (accept != null && accept.contains("application/json")) {
+            return true;
+        }
+        String contentType = request.getContentType();
+        if (contentType != null && contentType.contains("application/json")) {
+            return true;
+        }
+        String method = request.getMethod();
+        return "PUT".equals(method) || "DELETE".equals(method) || "PATCH".equals(method);
     }
 
     @ExceptionHandler(BusinessException.class)
@@ -70,6 +83,19 @@ public class GlobalExceptionHandler {
         ModelAndView mav = new ModelAndView("error");
         mav.addObject("code", 404);
         mav.addObject("message", "资源不存在");
+        return mav;
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public @ResponseBody Object handleResponseStatusException(ResponseStatusException e, HttpServletRequest request) {
+        int code = e.getStatusCode().value();
+        String message = e.getReason() != null ? e.getReason() : "请求错误";
+        if (isAjaxRequest(request)) {
+            return ApiResult.error(code, message);
+        }
+        ModelAndView mav = new ModelAndView("error");
+        mav.addObject("code", code);
+        mav.addObject("message", message);
         return mav;
     }
 
