@@ -140,7 +140,7 @@ public class ContactService {
     @Transactional(readOnly = true)
     public List<Contact> getContactsByIds(List<Long> ids, Long userId) {
         if (ids == null || ids.isEmpty()) return List.of();
-        var contacts = contactRepository.findAllById(ids);
+        var contacts = contactRepository.findAllByIdIn(ids);
         return contacts.stream()
                 .filter(c -> c.getUser().getId().equals(userId) && !c.getIsDeleted())
                 .toList();
