@@ -54,3 +54,5 @@ uploads/
 temp/
 *.tmp
 /.trae/
+
+application-local.yml
