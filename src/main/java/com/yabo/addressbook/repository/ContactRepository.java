@@ -24,7 +24,8 @@ public interface ContactRepository extends JpaRepository<Contact, Long>, JpaSpec
     @Query("SELECT c FROM Contact c JOIN FETCH c.group WHERE c.user.id = :userId AND c.isDeleted = false")
     List<Contact> findByUserIdAndIsDeletedFalse(Long userId);
 
-    List<Contact> findByGroupIdAndIsDeletedFalse(Long groupId);
+    @EntityGraph(attributePaths = {"group"})
+    List<Contact> findAllByIdIn(List<Long> ids);
 
     long countByUserIdAndIsDeletedTrue(Long userId);
 
