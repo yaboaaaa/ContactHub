@@ -38,7 +38,7 @@
     window.initPage = function() {
         ajaxSetup();
         loadI18n().then(function() {
-            fetch('/api/user/current')
+            fetch('/api/v1/user/current')
                 .then(function(r) { return r.json(); })
                 .then(function(r) {
                     if (r.code === 200 && r.data && r.data.isAdmin) {
