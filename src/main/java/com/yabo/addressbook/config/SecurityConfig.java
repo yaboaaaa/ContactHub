@@ -44,7 +44,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login.html", "/register.html", "/error.html", "/404.html", "/index.html",
                     "/css/**", "/js/**", "/webjars/**", "/swagger-ui/**", "/v3/api-docs/**",
-                    "/swagger-ui.html", "/uploads/**", "/api/v1/captcha").permitAll()
+                    "/swagger-ui.html", "/uploads/**", "/api/v1/captcha", "/api/v1/register/**").permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
