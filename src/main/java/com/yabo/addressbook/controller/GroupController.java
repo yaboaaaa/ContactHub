@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,6 +43,14 @@ public class GroupController {
     public ApiResult<?> listGroups() {
         Long userId = getCurrentUserId();
         return ApiResult.success(groupService.listGroups(userId));
+    }
+
+    @GetMapping("/check-name")
+    @Operation(summary = "检查分组名是否重复", description = "检查指定分组名称在当前用户下是否已存在")
+    public ApiResult<?> checkName(@RequestParam String name, @RequestParam(required = false) Long excludeId) {
+        Long userId = getCurrentUserId();
+        boolean exists = groupService.existsByName(userId, name, excludeId);
+        return ApiResult.success(java.util.Map.of("exists", exists));
     }
 
     @PostMapping
