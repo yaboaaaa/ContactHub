@@ -49,9 +49,19 @@
     };
 
     window.initPage = function() {
-        // Add footer
+        // Add footer - sticky bottom
+        document.body.style.minHeight = '100vh';
+        document.body.style.display = 'flex';
+        document.body.style.flexDirection = 'column';
+        // Wrap existing content in a flex-grow container
+        var wrapper = document.createElement('div');
+        wrapper.style.flex = '1';
+        while (document.body.firstChild) {
+            wrapper.appendChild(document.body.firstChild);
+        }
+        document.body.appendChild(wrapper);
         var footer = document.createElement('footer');
-        footer.style.cssText = 'text-align:center;padding:1.5rem 0;color:#999;font-size:0.8rem;border-top:1px solid #eee;margin-top:2rem;clear:both;';
+        footer.style.cssText = 'text-align:center;padding:1.5rem 0;color:#999;font-size:0.8rem;border-top:1px solid #eee;';
         footer.innerHTML = '&copy; 2026 <a href="/" style="color:#888;text-decoration:none;">ContactHub</a> &mdash; Made with &#10084; by <a href="#" style="color:#888;text-decoration:none;">yabo</a>';
         document.body.appendChild(footer);
 
