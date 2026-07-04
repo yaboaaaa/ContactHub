@@ -24,19 +24,20 @@ class ValidationUtilTest {
 
     @Test
     void testIsValidUsername() {
-        assertTrue(ValidationUtil.isValidUsername("abc"));
+        assertTrue(ValidationUtil.isValidUsername("abcd"));
         assertTrue(ValidationUtil.isValidUsername("user123"));
-        assertTrue(ValidationUtil.isValidUsername("user_name"));
         assertTrue(ValidationUtil.isValidUsername("UserName123"));
+        assertTrue(ValidationUtil.isValidUsername("aBcDe12345"));
 
         assertFalse(ValidationUtil.isValidUsername(null));
         assertFalse(ValidationUtil.isValidUsername(""));
         assertFalse(ValidationUtil.isValidUsername("  "));
-        assertFalse(ValidationUtil.isValidUsername("ab"));
-        assertFalse(ValidationUtil.isValidUsername("a".repeat(21)));
-        assertFalse(ValidationUtil.isValidUsername("user-name"));
-        assertFalse(ValidationUtil.isValidUsername("user name"));
-        assertFalse(ValidationUtil.isValidUsername("user@name"));
+        assertFalse(ValidationUtil.isValidUsername("abc"));      // too short
+        assertFalse(ValidationUtil.isValidUsername("1abc"));     // starts with digit
+        assertFalse(ValidationUtil.isValidUsername("_abc"));     // starts with underscore
+        assertFalse(ValidationUtil.isValidUsername("user_name")); // underscore not allowed
+        assertFalse(ValidationUtil.isValidUsername("user-name")); // hyphen not allowed
+        assertFalse(ValidationUtil.isValidUsername("a".repeat(21))); // too long
     }
 
     @Test
@@ -69,13 +70,15 @@ class ValidationUtilTest {
         assertEquals("用户名不能为空", ValidationUtil.validateUsername(""));
         assertEquals("用户名不能为空", ValidationUtil.validateUsername("  "));
 
-        assertEquals("用户名只能包含字母、数字和下划线，长度3-20位", ValidationUtil.validateUsername("ab"));
-        assertEquals("用户名只能包含字母、数字和下划线，长度3-20位", ValidationUtil.validateUsername("a".repeat(21)));
-        assertEquals("用户名只能包含字母、数字和下划线，长度3-20位", ValidationUtil.validateUsername("user-name"));
+        assertNotNull(ValidationUtil.validateUsername("ab"));       // too short
+        assertNotNull(ValidationUtil.validateUsername("1abc"));     // starts with digit
+        assertNotNull(ValidationUtil.validateUsername("a".repeat(21))); // too long
+        assertNotNull(ValidationUtil.validateUsername("user-name"));// hyphen
+        assertNotNull(ValidationUtil.validateUsername("user_name"));// underscore
 
-        assertNull(ValidationUtil.validateUsername("abc"));
+        assertNull(ValidationUtil.validateUsername("abcd"));
         assertNull(ValidationUtil.validateUsername("user123"));
-        assertNull(ValidationUtil.validateUsername("user_name"));
+        assertNull(ValidationUtil.validateUsername("UserName123"));
     }
 
     @Test

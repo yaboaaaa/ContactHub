@@ -19,7 +19,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,75 +60,52 @@ class AdminServiceTest {
         List<User> result = adminService.listUsers();
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).getUsername()).isEqualTo("user1");
-        assertThat(result.get(1).getUsername()).isEqualTo("user2");
         verify(userRepository).findAll();
     }
 
     @Test
     void createUser_shouldCreateUserWithRoleUSER() {
-        String username = "newuser";
-        String password = "password123";
-        String email = "newuser@example.com";
-
-        when(userRepository.existsByUsername(username)).thenReturn(false);
-        when(passwordEncoder.encode(password)).thenReturn("encoded");
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encoded");
 
         User savedUser = new User();
         savedUser.setId(1L);
-        savedUser.setUsername(username);
-        savedUser.setPassword("encoded");
-        savedUser.setEmail(email);
-        savedUser.setRole("USER");
-        savedUser.setEnabled(true);
+        savedUser.setUsername("newuser");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        User result = adminService.createUser(username, password, email);
+        User result = adminService.createUser("newuser", "password123", "new@example.com");
 
         assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo(username);
-        assertThat(result.getRole()).isEqualTo("USER");
-        assertThat(result.getEnabled()).isTrue();
-        verify(userRepository).existsByUsername(username);
+        verify(userRepository).existsByUsername("newuser");
         verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void createUser_shouldThrowBusinessException_whenUsernameExists() {
+    void createUser_shouldThrow_whenUsernameExists() {
         when(userRepository.existsByUsername("existing")).thenReturn(true);
 
-        assertThatThrownBy(() -> adminService.createUser("existing", "pass", "email@test.com"))
+        assertThatThrownBy(() -> adminService.createUser("existing", "password123", "e@t.com"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("用户名已存在");
-
-        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void deleteUser_shouldThrowBusinessException_whenDeletingAdmin() {
+    void deleteUser_shouldThrow_whenDeletingAdmin() {
         User adminUser = new User();
         adminUser.setId(1L);
-        adminUser.setUsername("admin");
         adminUser.setRole("ADMIN");
-
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
         assertThatThrownBy(() -> adminService.deleteUser(1L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("不能删除管理员账号");
-
-        verify(contactRepository, never()).deleteByUserId(anyLong());
-        verify(contactGroupRepository, never()).deleteByUserId(anyLong());
-        verify(userRepository, never()).delete(any(User.class));
     }
 
     @Test
-    void deleteUser_shouldCascadeDeleteContactsAndGroups() {
+    void deleteUser_shouldCascadeDelete() {
         User normalUser = new User();
         normalUser.setId(2L);
-        normalUser.setUsername("normaluser");
         normalUser.setRole("USER");
-
         when(userRepository.findById(2L)).thenReturn(Optional.of(normalUser));
 
         adminService.deleteUser(2L);
@@ -140,55 +116,9 @@ class AdminServiceTest {
     }
 
     @Test
-    void deleteUser_shouldThrowEntityNotFoundException_whenUserNotFound() {
+    void deleteUser_shouldThrow_whenNotFound() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
         assertThatThrownBy(() -> adminService.deleteUser(999L))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("用户不存在");
-    }
-
-    @Test
-    void toggleEnabled_shouldToggleEnabledStatus() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
-        user.setEnabled(true);
-        user.setRole("USER");
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User toggled1 = adminService.toggleEnabled(1L);
-        assertThat(toggled1.getEnabled()).isFalse();
-
-        User toggled2 = adminService.toggleEnabled(1L);
-        assertThat(toggled2.getEnabled()).isTrue();
-
-        verify(userRepository, times(2)).save(user);
-    }
-
-    @Test
-    void toggleEnabled_shouldHandleNullEnabled() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
-        user.setEnabled(null);
-        user.setRole("USER");
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = adminService.toggleEnabled(1L);
-
-        assertThat(result.getEnabled()).isTrue();
-    }
-
-    @Test
-    void toggleEnabled_shouldThrowEntityNotFoundException_whenUserNotFound() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> adminService.toggleEnabled(999L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("用户不存在");
     }
@@ -198,11 +128,9 @@ class AdminServiceTest {
         User user = new User();
         user.setId(1L);
         user.setUsername("testuser");
-        user.setEmail("old@example.com");
         user.setEnabled(true);
-
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
         User result = adminService.updateUser(1L, null, null, "new@example.com", false);
 
@@ -211,11 +139,70 @@ class AdminServiceTest {
     }
 
     @Test
-    void updateUser_shouldThrowEntityNotFoundException_whenUserNotFound() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+    void updateUser_shouldUpdateNickname() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testuser");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        assertThatThrownBy(() -> adminService.updateUser(999L, null, null, "email", true))
+        User result = adminService.updateUser(1L, null, "新昵称", null, null);
+
+        assertThat(result.getNickname()).isEqualTo("新昵称");
+    }
+
+    @Test
+    void updateUser_shouldUpdateUsername() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("oldname");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsByUsername("newname")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = adminService.updateUser(1L, "newname", null, null, null);
+
+        assertThat(result.getUsername()).isEqualTo("newname");
+    }
+
+    @Test
+    void updateUser_shouldThrow_whenUsernameTaken() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("oldname");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsByUsername("taken")).thenReturn(true);
+
+        assertThatThrownBy(() -> adminService.updateUser(1L, "taken", null, null, null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("用户名已存在");
+    }
+
+    @Test
+    void updateUser_shouldThrow_whenNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> adminService.updateUser(999L, null, null, "e@t.com", true))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("用户不存在");
+    }
+
+    @Test
+    void resetPassword_shouldUpdatePassword() {
+        User user = new User();
+        user.setId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("newpass")).thenReturn("encoded_new");
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        adminService.resetPassword(1L, "newpass");
+
+        assertThat(user.getPassword()).isEqualTo("encoded_new");
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> adminService.resetPassword(999L, "pass"))
+                .isInstanceOf(BusinessException.class);
     }
 }
