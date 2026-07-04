@@ -146,7 +146,7 @@
             var username=document.getElementById('editUsername').value.trim();
             var nickname=document.getElementById('editNickname').value.trim();
             var email=document.getElementById('editEmail').value.trim();
-            if(!username||!/^[a-zA-Z]{4,}$/.test(username)){showAlert('用户名必须为英文，至少4位','danger');return;}
+            if(!username||!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username)){showAlert('用户名必须以英文开头，仅含英文和数字，至少4位','danger');return;}
             var params=new URLSearchParams();
             params.append('username',username);
             params.append('nickname',nickname);

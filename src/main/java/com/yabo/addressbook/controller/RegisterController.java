@@ -48,8 +48,8 @@ public class RegisterController {
         String email = body.get("email");
         String nickname = body.get("nickname");
 
-        if (username == null || !username.trim().matches("^[a-zA-Z]{4,}$")) {
-            return ApiResult.error(400, "用户名必须为英文字符，至少4位");
+        if (username == null || !username.trim().matches("^[a-zA-Z][a-zA-Z0-9]{3,19}$")) {
+            return ApiResult.error(400, "用户名必须以英文开头，仅含英文和数字，长度4-20位");
         }
         if (email != null && !email.trim().isEmpty() && !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
             return ApiResult.error(400, "邮箱格式不正确");

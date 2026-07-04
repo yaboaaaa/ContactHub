@@ -159,8 +159,8 @@
         function checkUsername(username) {
             var fb = document.getElementById('usernameFeedback');
             if (!username || !username.trim()) { fb.textContent = ''; fb.className = 'form-feedback'; return; }
-            if (!/^[a-zA-Z]{4,}$/.test(username.trim())) {
-                fb.textContent = '用户名必须为英文字符，至少4位';
+            if (!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username.trim())) {
+                fb.textContent = '用户名必须以英文开头，仅含英文和数字，至少4位';
                 fb.className = 'form-feedback invalid';
                 return;
             }
@@ -207,8 +207,8 @@
         document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
             var username = document.getElementById('username').value.trim();
-            if (!/^[a-zA-Z]{4,}$/.test(username)) {
-                document.getElementById('usernameFeedback').textContent = '用户名必须为英文字符，至少4位';
+            if (!/^[a-zA-Z][a-zA-Z0-9]{3,19}$/.test(username)) {
+                document.getElementById('usernameFeedback').textContent = '用户名必须以英文开头，仅含英文和数字，至少4位';
                 document.getElementById('usernameFeedback').className = 'form-feedback invalid';
                 return;
             }
