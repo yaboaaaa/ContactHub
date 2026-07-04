@@ -1,8 +1,22 @@
-// app.js - Shared utilities (no navbar rendering - navbar is inline in each page)
+// app.js - Shared utilities
 (function() {
     window.getCsrfToken = function() {
         var match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : '';
+        if (match) return decodeURIComponent(match[1]);
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) return meta.getAttribute('content');
+        return window._csrfToken || '';
+    };
+
+    window.loadCsrfToken = function() {
+        return fetch('/csrf').then(function(r) { return r.json(); }).then(function(data) {
+            if (data && data.token) {
+                var meta = document.createElement('meta');
+                meta.name = 'csrf-token';
+                meta.content = data.token;
+                document.head.appendChild(meta);
+            }
+        }).catch(function() {});
     };
 
     window.ajaxSetup = function() {
@@ -34,19 +48,20 @@
         setTimeout(function() { if (container.parentNode) container.parentNode.removeChild(container); }, 3000);
     };
 
-    // Called by each page to: load i18n, show admin menu, setup ajax
     window.initPage = function() {
-        ajaxSetup();
-        loadI18n().then(function() {
-            fetch('/api/v1/user/current')
-                .then(function(r) { return r.json(); })
-                .then(function(r) {
-                    if (r.code === 200 && r.data && r.data.isAdmin) {
-                        var el = document.getElementById('navAdmin');
-                        if (el) el.style.display = '';
-                    }
-                })
-                .catch(function() {});
+        loadCsrfToken().then(function() {
+            ajaxSetup();
+            loadI18n().then(function() {
+                fetch('/api/v1/user/current')
+                    .then(function(r) { return r.json(); })
+                    .then(function(r) {
+                        if (r.code === 200 && r.data && r.data.isAdmin) {
+                            var el = document.getElementById('navAdmin');
+                            if (el) el.style.display = '';
+                        }
+                    })
+                    .catch(function() {});
+            });
         });
     };
 })();
