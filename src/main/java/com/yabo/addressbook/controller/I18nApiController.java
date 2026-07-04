@@ -1,10 +1,10 @@
 package com.yabo.addressbook.controller;
 
 import com.yabo.addressbook.dto.ApiResult;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Locale;
@@ -22,8 +22,8 @@ public class I18nApiController {
     }
 
     @GetMapping
-    public ApiResult<Map<String, String>> getMessages(HttpServletRequest request) {
-        Locale locale = request.getLocale();
+    public ApiResult<Map<String, String>> getMessages(@RequestParam(defaultValue = "zh") String lang) {
+        Locale locale = "en".equals(lang) ? Locale.ENGLISH : Locale.CHINA;
         String[] keys = {
             "app.name", "app.tagline",
             "nav.contacts", "nav.recycle", "nav.admin", "nav.logout", "nav.avatar", "nav.contactsList", "nav.profile",
