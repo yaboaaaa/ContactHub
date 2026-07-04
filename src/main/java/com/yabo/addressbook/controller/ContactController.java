@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -244,6 +245,14 @@ public class ContactController {
     public void exportAllContacts(HttpServletResponse response) {
         Long userId = getCurrentUserId();
         var contacts = contactService.getAllContacts(userId);
+        ExcelUtil.exportContacts(contacts, response);
+    }
+
+    @PostMapping("/export/selected")
+    @Operation(summary = "导出选中的联系人", description = "按ID列表导出联系人为Excel文件")
+    public void exportSelectedContacts(@RequestBody List<Long> ids, HttpServletResponse response) {
+        Long userId = getCurrentUserId();
+        var contacts = contactService.getContactsByIds(ids, userId);
         ExcelUtil.exportContacts(contacts, response);
     }
 

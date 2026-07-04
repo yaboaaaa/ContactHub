@@ -41,7 +41,11 @@
         <div class="page-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0" data-i18n="page.title.contacts">我的通讯录</h3>
             <div>
-                <a href="/contacts/export/all" class="btn btn-outline-primary me-2" data-i18n="contact.exportAll">导出全部</a>
+                <a href="/api/v1/contacts/export/all" class="btn btn-outline-primary me-2" data-i18n="contact.exportAll">导出全部</a>
+                <button type="button" class="btn btn-outline-success me-2" id="exportSelectedBtn" onclick="exportSelected()" style="display:none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                    <span data-i18n="contact.exportSelected">导出选中</span> (<span id="selectedCount">0</span>)
+                </button>
                 <button type="button" class="btn btn-primary" onclick="openAddModal()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
                     <span data-i18n="contact.add">新增联系人</span>
@@ -87,8 +91,8 @@
                 </div>
                 <div class="loading-overlay" id="loadingOverlay"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" data-i18n="contact.loading">加载中...</p></div>
                 <div class="contact-table"><div class="table-responsive"><table class="table table-hover align-middle bg-white rounded shadow-sm"><thead><tr>
-                    <th data-i18n="contact.avatar">头像</th><th data-i18n="contact.name">姓名</th><th data-i18n="contact.gender">性别</th><th data-i18n="contact.phone">手机号</th><th data-i18n="contact.email">邮箱</th><th data-i18n="contact.company">公司</th><th data-i18n="contact.jobTitle">职位</th><th data-i18n="contact.group">分组</th><th data-i18n="contact.actions">操作</th>
-                </tr></thead><tbody id="contactTableBody"><tr><td colspan="9" class="text-center text-muted py-4" data-i18n="contact.noData">暂无数据</td></tr></tbody></table></div></div>
+                    <th style="width:40px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th><th data-i18n="contact.avatar">头像</th><th data-i18n="contact.name">姓名</th><th data-i18n="contact.gender">性别</th><th data-i18n="contact.phone">手机号</th><th data-i18n="contact.email">邮箱</th><th data-i18n="contact.company">公司</th><th data-i18n="contact.jobTitle">职位</th><th data-i18n="contact.group">分组</th><th data-i18n="contact.actions">操作</th>
+                </tr></thead><tbody id="contactTableBody"><tr><td colspan="10" class="text-center text-muted py-4" data-i18n="contact.noData">暂无数据</td></tr></tbody></table></div></div>
                 <div class="contact-card-list" id="contactCardList"></div>
                 <nav class="d-flex justify-content-between align-items-center mt-3" id="paginationNav">
                     <div class="contact-count" id="contactCount">共 0 条</div>
@@ -218,18 +222,46 @@
             }).fail(function() { showAlert(t('contact.loadingFailed', '加载联系人失败'), 'danger'); }).always(function() { $('#loadingOverlay').removeClass('active'); });
         }
 
+        var selectedIds = new Set();
+        function updateSelectedUI() {
+            var count = selectedIds.size;
+            $('#selectedCount').text(count);
+            $('#exportSelectedBtn').toggle(count > 0);
+        }
+        function toggleSelectAll(el) {
+            if (el.checked) { document.querySelectorAll('.contact-cb').forEach(function(cb){ selectedIds.add(parseInt(cb.dataset.id)); cb.checked=true; }); }
+            else { document.querySelectorAll('.contact-cb').forEach(function(cb){ selectedIds.delete(parseInt(cb.dataset.id)); cb.checked=false; }); }
+            updateSelectedUI();
+        }
+        function toggleSelect(id, checked) {
+            if (checked) selectedIds.add(id); else selectedIds.delete(id);
+            updateSelectedUI();
+            var all = document.querySelectorAll('.contact-cb');
+            document.getElementById('selectAll').checked = all.length > 0 && Array.from(all).every(function(cb){return cb.checked;});
+        }
+        function exportSelected() {
+            if (!selectedIds.size) return;
+            var ids = Array.from(selectedIds);
+            fetch('/api/v1/contacts/export/selected',{method:'POST',headers:{'Content-Type':'application/json','X-XSRF-TOKEN':getCsrfToken()},body:JSON.stringify(ids)})
+            .then(function(r){if(!r.ok)throw new Error();return r.blob()})
+            .then(function(blob){
+                var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='contacts.xlsx';a.click();URL.revokeObjectURL(a.href);
+            }).catch(function(){showAlert(t('alert.failure','操作失败'),'danger');});
+        }
+
         function renderContacts(data) {
             var content = data.content || [], total = data.totalElements || 0, pages = data.totalPages || 0, cur = data.currentPage - 1;
             $('#totalCount').text(total);
             $('#contactCount').text(t('common.records', '共 {0} 条').replace('{0}', total));
             var tbody = $('#contactTableBody').empty(), cardList = $('#contactCardList').empty();
             if (!content.length) {
-                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">'+t('contact.noData','暂无数据')+'</td></tr>');
+                tbody.html('<tr><td colspan="10" class="text-center text-muted py-4">'+t('contact.noData','暂无数据')+'</td></tr>');
                 cardList.html('<div class="text-center text-muted py-4">'+t('contact.noData','暂无数据')+'</div>');
             } else {
                 content.forEach(function(c) {
                     var gn = c.group ? escapeHtml(c.group.name) : '-', dn = escapeHtml(getDisplayName(c));
-                    tbody.append('<tr><td>'+getContactAvatarHtml(c)+'</td><td><strong>'+dn+'</strong></td><td>'+getGenderText(c.gender)+'</td><td>'+escapeHtml(c.phoneMobile)+'</td><td>'+escapeHtml(c.email)+'</td><td>'+escapeHtml(c.company)+'</td><td>'+escapeHtml(c.jobTitle)+'</td><td>'+gn+'</td><td><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" onclick="editContact('+c.id+')">'+t('group.edit','编辑')+'</button><button class="btn btn-outline-danger" onclick="confirmDelete('+c.id+',\''+dn.replace(/'/g,"\\'")+'\')">'+t('admin.btn.delete','删除')+'</button></div></td></tr>');
+                    var checked = selectedIds.has(c.id) ? ' checked' : '';
+                    tbody.append('<tr><td><input type="checkbox" class="contact-cb" data-id="'+c.id+'"'+checked+' onchange="toggleSelect('+c.id+',this.checked)"></td><td>'+getContactAvatarHtml(c)+'</td><td><strong>'+dn+'</strong></td><td>'+getGenderText(c.gender)+'</td><td>'+escapeHtml(c.phoneMobile)+'</td><td>'+escapeHtml(c.email)+'</td><td>'+escapeHtml(c.company)+'</td><td>'+escapeHtml(c.jobTitle)+'</td><td>'+gn+'</td><td><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" onclick="editContact('+c.id+')">'+t('group.edit','编辑')+'</button><button class="btn btn-outline-danger" onclick="confirmDelete('+c.id+',\''+dn.replace(/'/g,"\\'")+'\')">'+t('admin.btn.delete','删除')+'</button></div></td></tr>');
                     cardList.append('<div class="contact-card position-relative"><div class="card-actions btn-group btn-group-sm"><button class="btn btn-outline-primary btn-sm" onclick="editContact('+c.id+')">'+t('group.edit','编辑')+'</button><button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('+c.id+',\''+dn.replace(/'/g,"\\'")+'\')">'+t('admin.btn.delete','删除')+'</button></div><div class="d-flex align-items-center mb-2"><div class="me-3 flex-shrink-0">'+getContactAvatarHtml(c,'card')+'</div><div><h6 class="mb-1"><strong>'+dn+'</strong> '+getGenderText(c.gender)+'</h6><div><span class="badge bg-secondary">'+gn+'</span></div></div></div><div class="small text-muted">'+(c.phoneMobile?'<div>&#9742; '+escapeHtml(c.phoneMobile)+'</div>':'')+(c.email?'<div>&#9993; '+escapeHtml(c.email)+'</div>':'')+(c.company?'<div>&#127970; '+escapeHtml(c.company)+'</div>':'')+'</div></div>');
                 });
             }
@@ -244,9 +276,9 @@
             pg.append('<li class="page-item '+(cur>=total-1?'disabled':'')+'"><a class="page-link" onclick="loadContacts('+(cur+1)+')">&raquo;</a></li>');
         }
 
-        function searchContacts() { currentGroupId=''; $('#groupList .list-group-item').removeClass('active').first().addClass('active'); loadContacts(0); }
-        function resetSearch() { $('#searchKeyword,#searchPhone,#searchProvince,#searchCity,#searchDistrict,#searchCompany,#searchJobTitle').val(''); $('#searchGroup').val(''); searchContacts(); }
-        function switchGroup(gid) { currentGroupId=gid; $('#groupList .list-group-item').removeClass('active'); if(!gid) $('#groupList .list-group-item:first').addClass('active'); else $('#groupList .list-group-item[data-group-id="'+gid+'"]').addClass('active'); loadContacts(0); }
+        function searchContacts() { currentGroupId=''; selectedIds.clear(); updateSelectedUI(); $('#selectAll').prop('checked',false); $('#groupList .list-group-item').removeClass('active').first().addClass('active'); loadContacts(0); }
+        function resetSearch() { $('#searchKeyword,#searchPhone,#searchProvince,#searchCity,#searchDistrict,#searchCompany,#searchJobTitle').val(''); $('#searchGroup').val(''); currentGroupId=''; selectedIds.clear(); updateSelectedUI(); $('#selectAll').prop('checked',false); $('#groupList .list-group-item').removeClass('active').first().addClass('active'); loadContacts(0); }
+        function switchGroup(gid) { currentGroupId=gid; selectedIds.clear(); updateSelectedUI(); $('#selectAll').prop('checked',false); $('#groupList .list-group-item').removeClass('active'); if(!gid) $('#groupList .list-group-item:first').addClass('active'); else $('#groupList .list-group-item[data-group-id="'+gid+'"]').addClass('active'); loadContacts(0); }
 
         function openAddModal() {
             $('#contactModalTitle').text(t('modal.addContact','新增联系人'));
