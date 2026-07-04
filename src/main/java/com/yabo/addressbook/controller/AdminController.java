@@ -8,8 +8,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,10 +16,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Controller
+@RestController
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "管理员接口", description = "管理员专用接口，需要ADMIN角色权限")
@@ -31,13 +30,6 @@ public class AdminController {
 
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
-    }
-
-    @GetMapping("/users")
-    public String listUsers(Model model) {
-        List<User> users = adminService.listUsers();
-        model.addAttribute("users", users);
-        return "admin/users";
     }
 
     @GetMapping("/users/data")

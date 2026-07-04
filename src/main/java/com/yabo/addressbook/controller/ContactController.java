@@ -4,6 +4,7 @@ import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.dto.ContactDTO;
 import com.yabo.addressbook.dto.PageDTO;
 import com.yabo.addressbook.entity.User;
+import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.repository.UserRepository;
 import com.yabo.addressbook.service.ContactService;
 import com.yabo.addressbook.service.GroupService;
@@ -19,8 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,8 +29,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 @RequestMapping("/contacts")
 @Tag(name = "联系人管理", description = "联系人的增删改查及导入导出操作")
 public class ContactController {
@@ -48,13 +48,6 @@ public class ContactController {
         this.contactService = contactService;
         this.groupService = groupService;
         this.userRepository = userRepository;
-    }
-
-    @GetMapping
-    public String contactsPage(Model model) {
-        Long userId = getCurrentUserId();
-        model.addAttribute("groups", groupService.listGroups(userId));
-        return "contacts";
     }
 
     @GetMapping("/data")
@@ -118,11 +111,6 @@ public class ContactController {
         pageDTO.setCurrentPage(pageResult.getNumber() + 1);
         pageDTO.setSize(pageResult.getSize());
         return ApiResult.success(pageDTO);
-    }
-
-    @GetMapping("/recycle")
-    public String recyclePage() {
-        return "recycle";
     }
 
     @GetMapping("/recycle/data")
@@ -268,7 +256,7 @@ public class ContactController {
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("用户未登录");
+            throw new BusinessException("用户未登录");
         }
         Object principal = authentication.getPrincipal();
         String username;

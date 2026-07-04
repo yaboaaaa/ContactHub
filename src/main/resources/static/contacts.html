@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title.contacts">通讯录 - 通讯录系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #E7F1F7, #BFD8E6 60%, #FFF2D9); min-height: 100vh; background-attachment: fixed; }
+        .sidebar { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1rem; }
+        .sidebar .list-group-item { border: none; border-radius: 6px; margin-bottom: 2px; cursor: pointer; }
+        .sidebar .list-group-item:hover { background-color: #e9ecef; }
+        .sidebar .list-group-item.active { background-color: #0d6efd; color: #fff; }
+        .sidebar .list-group-item .badge { font-size: 0.75rem; }
+        .main-content { flex: 1; min-width: 0; }
+        .contact-table th { background-color: #f8f9fa; white-space: nowrap; }
+        .contact-table td { vertical-align: middle; }
+        .contact-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 0.75rem; transition: box-shadow 0.2s; }
+        .contact-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .contact-card .card-actions { position: absolute; top: 0.5rem; right: 0.5rem; }
+        .search-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 1rem; }
+        .page-header { border-bottom: 2px solid #e9ecef; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .gender-male { color: #0d6efd; }
+        .gender-female { color: #dc3545; }
+        .gender-unknown { color: #6c757d; }
+        @media (max-width: 768px) { .sidebar { margin-bottom: 1rem; } .contact-table { display: none; } .contact-card-list { display: block; } }
+        @media (min-width: 769px) { .contact-card-list { display: none; } }
+        .pagination .page-link { cursor: pointer; }
+        .loading-overlay { display: none; text-align: center; padding: 2rem; }
+        .loading-overlay.active { display: block; }
+        .contact-count { font-size: 0.85rem; color: #6c757d; }
+        .group-actions { display: inline-block; white-space: nowrap; }
+        .group-actions .btn-link { text-decoration: none; line-height: 1; }
+        .contact-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #e9ecef; }
+        .contact-avatar-placeholder { width: 40px; height: 40px; border-radius: 50%; background-color: #6c757d; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 600; }
+        .card-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: #e9ecef; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/contacts.html" data-i18n="app.name">通讯录系统</a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link active" href="/contacts.html" data-i18n="nav.contacts">通讯录</a></li><li class="nav-item"><a class="nav-link" href="/recycle.html" data-i18n="nav.recycle">回收站</a></li><li class="nav-item" id="navAdmin" style="display:none"><a class="nav-link" href="/admin/users.html" data-i18n="nav.admin">用户管理</a></li><li class="nav-item"><a class="nav-link" href="/user/profile.html" data-i18n="nav.profile">个人信息</a></li><li class="nav-item"><a class="nav-link" href="/logout" data-i18n="nav.logout">退出登录</a></li><li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">&#127760;</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:setLang('zh')">中文</a></li><li><a class="dropdown-item" href="javascript:setLang('en')">English</a></li></ul></li></ul></div></div></nav>
+
+    <div class="container mt-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0" data-i18n="page.title.contacts">我的通讯录</h3>
+            <div>
+                <a href="/contacts/export/all" class="btn btn-outline-primary me-2" data-i18n="contact.exportAll">导出全部</a>
+                <button type="button" class="btn btn-primary" onclick="openAddModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
+                    <span data-i18n="contact.add">新增联系人</span>
+                </button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0" data-i18n="contact.group">分组</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="createGroup()" data-i18n="contact.group.new">新建分组</button>
+                    </div>
+                    <div class="list-group" id="groupList">
+                        <a class="list-group-item list-group-item-action active" data-group-id="" onclick="switchGroup('')">
+                            <span data-i18n="group.all">全部联系人</span>
+                            <span class="badge bg-secondary rounded-pill float-end" id="totalCount">0</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="search-section">
+                    <div class="row g-2">
+                        <div class="col-md-4"><input type="text" class="form-control" id="searchKeyword" data-i18n-placeholder="contact.searchByName" placeholder="搜索姓名..."></div>
+                        <div class="col-md-3"><input type="text" class="form-control" id="searchPhone" data-i18n-placeholder="contact.searchByPhone" placeholder="搜索电话..."></div>
+                        <div class="col-md-3"><select class="form-select" id="searchGroup"><option value="" data-i18n="group.all">全部分组</option></select></div>
+                        <div class="col-md-2"><button class="btn btn-primary w-100" onclick="searchContacts()" data-i18n="contact.search">搜索</button></div>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearch" data-i18n="contact.advanced">高级搜索</button>
+                        <button class="btn btn-sm btn-link text-secondary" onclick="resetSearch()" data-i18n="btn.reset">重置</button>
+                    </div>
+                    <div class="collapse mt-2" id="advancedSearch">
+                        <div class="row g-2">
+                            <div class="col-md-4"><input type="text" class="form-control" id="searchProvince" data-i18n-placeholder="contact.placeholder.province" placeholder="省份"></div>
+                            <div class="col-md-4"><input type="text" class="form-control" id="searchCity" data-i18n-placeholder="contact.placeholder.city" placeholder="城市"></div>
+                            <div class="col-md-4"><input type="text" class="form-control" id="searchDistrict" data-i18n-placeholder="contact.placeholder.district" placeholder="区/县"></div>
+                            <div class="col-md-4"><input type="text" class="form-control" id="searchCompany" data-i18n-placeholder="contact.placeholder.company" placeholder="公司"></div>
+                            <div class="col-md-4"><input type="text" class="form-control" id="searchJobTitle" data-i18n-placeholder="contact.placeholder.jobTitle" placeholder="职位"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="loading-overlay" id="loadingOverlay"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" data-i18n="contact.loading">加载中...</p></div>
+                <div class="contact-table"><div class="table-responsive"><table class="table table-hover align-middle bg-white rounded shadow-sm"><thead><tr>
+                    <th data-i18n="contact.avatar">头像</th><th data-i18n="contact.name">姓名</th><th data-i18n="contact.gender">性别</th><th data-i18n="contact.phone">手机号</th><th data-i18n="contact.email">邮箱</th><th data-i18n="contact.company">公司</th><th data-i18n="contact.jobTitle">职位</th><th data-i18n="contact.group">分组</th><th data-i18n="contact.actions">操作</th>
+                </tr></thead><tbody id="contactTableBody"><tr><td colspan="9" class="text-center text-muted py-4" data-i18n="contact.noData">暂无数据</td></tr></tbody></table></div></div>
+                <div class="contact-card-list" id="contactCardList"></div>
+                <nav class="d-flex justify-content-between align-items-center mt-3" id="paginationNav">
+                    <div class="contact-count" id="contactCount">共 0 条</div>
+                    <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Contact Modal -->
+    <div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="contactModalTitle" data-i18n="modal.addContact">新增联系人</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><form id="contactForm">
+                <input type="hidden" id="editContactId">
+                <div class="row mb-3"><div class="col-12 text-center">
+                    <div class="mb-2"><img id="contactAvatarPreview" class="rounded-circle border" style="width:80px;height:80px;object-fit:cover;" alt="头像"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('contactAvatarInput').click()" data-i18n="contact.uploadAvatar">上传头像</button>
+                    <input type="file" id="contactAvatarInput" class="d-none" accept="image/*">
+                    <input type="hidden" id="inputAvatarUrl">
+                    <div class="form-text text-muted small" data-i18n="contact.avatarHint">支持 JPG/PNG</div>
+                </div></div>
+                <div class="row mb-3">
+                    <div class="col-md-3"><label class="form-label"><span data-i18n="contact.familyName">姓</span> <span class="text-danger">*</span></label><input type="text" class="form-control" id="inputFamilyName" required></div>
+                    <div class="col-md-3"><label class="form-label"><span data-i18n="contact.givenName">名</span> <span class="text-danger">*</span></label><input type="text" class="form-control" id="inputGivenName" required></div>
+                    <div class="col-md-3"><label class="form-label" data-i18n="contact.gender">性别</label><select class="form-select" id="inputGender"><option value="1" data-i18n="gender.male">男</option><option value="2" data-i18n="gender.female">女</option><option value="0" data-i18n="gender.unspecified">不便透露</option></select></div>
+                    <div class="col-md-3"><label class="form-label" data-i18n="contact.group">分组</label><select class="form-select" id="inputGroup"></select></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.phone">手机号</label><input type="text" class="form-control" id="inputPhoneMobile"></div>
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.phoneHome">家庭电话</label><input type="text" class="form-control" id="inputPhoneHome"></div>
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.phoneWork">工作电话</label><input type="text" class="form-control" id="inputPhoneWork"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><label class="form-label" data-i18n="contact.email">邮箱</label><input type="email" class="form-control" id="inputEmail"></div>
+                    <div class="col-md-3"><label class="form-label" data-i18n="contact.birthday">生日</label><input type="date" class="form-control" id="inputBirthday"></div>
+                    <div class="col-md-3"><label class="form-label" data-i18n="contact.company">公司</label><input type="text" class="form-control" id="inputCompany"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.jobTitle">职位</label><input type="text" class="form-control" id="inputJobTitle"></div>
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.province">省份</label><input type="text" class="form-control" id="inputProvince"></div>
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.city">城市</label><input type="text" class="form-control" id="inputCity"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label class="form-label" data-i18n="contact.district">区/县</label><input type="text" class="form-control" id="inputDistrict"></div>
+                    <div class="col-md-8"><label class="form-label" data-i18n="contact.address">详细地址</label><input type="text" class="form-control" id="inputAddressDetail"></div>
+                </div>
+                <div class="mb-3"><label class="form-label" data-i18n="contact.notes">备注</label><textarea class="form-control" id="inputNotes" rows="2"></textarea></div>
+            </form></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-primary" id="saveContactBtn" data-i18n="btn.save">保存</button></div>
+        </div></div>
+    </div>
+
+    <!-- Upload Avatar Modal -->
+    <div class="modal fade" id="uploadAvatarModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" data-i18n="modal.uploadAvatar">上传头像</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><form id="avatarUploadForm" enctype="multipart/form-data">
+                <div class="mb-3 text-center"><img id="uploadAvatarPreview" class="avatar-lg rounded-circle border" alt="头像"></div>
+                <div class="mb-3"><label class="form-label" data-i18n="contact.chooseAvatar">选择头像图片</label><input type="file" class="form-control" id="avatarFile" name="file" accept="image/*" required></div>
+                <div class="d-grid"><button type="submit" class="btn btn-primary" data-i18n="btn.uploadAndSave">上传并保存</button></div>
+            </form></div>
+        </div></div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" data-i18n="modal.confirmDelete">确认删除</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><p id="deleteConfirmText"></p></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-i18n="btn.confirm">确认删除</button></div>
+        </div></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        var currentPage = 0, currentGroupId = '', currentDeleteId = null;
+
+        function getGenderText(gender) {
+            if (gender === 1 || gender === '1') return '<span class="gender-male">' + t('gender.male', '男') + '</span>';
+            if (gender === 2 || gender === '2') return '<span class="gender-female">' + t('gender.female', '女') + '</span>';
+            return '<span class="gender-unknown">' + t('gender.unspecified', '不便透露') + '</span>';
+        }
+
+        function getDisplayName(c) {
+            if (c.familyName || c.givenName) return (c.familyName || '') + (c.givenName || '');
+            return c.name || '';
+        }
+
+        function getInitials(name) { return name ? name.substring(0, 2) : '?'; }
+
+        function getAvatarSvgDataUrl(initials, size, fontSize) {
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'"><circle cx="'+(size/2)+'" cy="'+(size/2)+'" r="'+(size/2)+'" fill="#6c757d"/><text x="'+(size/2)+'" y="'+(size/2+fontSize/3)+'" text-anchor="middle" fill="#fff" font-size="'+fontSize+'" font-family="sans-serif">'+escapeHtml(initials)+'</text></svg>';
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        }
+
+        function getContactAvatarHtml(c, sizeClass) {
+            var dn = getDisplayName(c), init = getInitials(dn), fallback = getAvatarSvgDataUrl(init, 40, 16);
+            var cls = sizeClass === 'card' ? 'card-avatar' : 'contact-avatar';
+            var src = c.avatarUrl ? c.avatarUrl : '/contacts/' + c.id + '/avatar';
+            return '<img src="'+src+'" class="'+cls+'" alt="头像" onerror="this.onerror=null;this.src=\''+fallback+'\'">';
+        }
+
+        function loadGroups() {
+            $.getJSON('/groups').done(function(result) {
+                if (result.code === 200 && result.data) {
+                    var gl = $('#groupList'), sg = $('#searchGroup'), ig = $('#inputGroup');
+                    result.data.forEach(function(g) {
+                        gl.append('<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-group-id="'+g.id+'" data-group-name="'+escapeHtml(g.name)+'" data-default="'+g.isDefault+'" onclick="switchGroup(this.dataset.groupId)"><span>'+escapeHtml(g.name)+'</span><span class="group-actions" '+(g.isDefault?'style="display:none"':'')+' onclick="event.stopPropagation();"><button type="button" class="btn btn-link btn-sm p-0 text-primary" onclick="editGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.edit','编辑')+'">&#9998;</button><button type="button" class="btn btn-link btn-sm p-0 text-danger ms-2" onclick="deleteGroup(this.closest(\'a\').dataset.groupId, this.closest(\'a\').dataset.groupName)" title="'+t('group.delete','删除')+'">&#128465;</button></span></a>');
+                        sg.append('<option value="'+g.id+'">'+escapeHtml(g.name)+'</option>');
+                        ig.append('<option value="'+g.id+'">'+escapeHtml(g.name)+'</option>');
+                    });
+                }
+            });
+        }
+
+        function loadContacts(page) {
+            currentPage = page || 0;
+            $('#loadingOverlay').addClass('active');
+            var params = { keyword: $('#searchKeyword').val(), phone: $('#searchPhone').val(), province: $('#searchProvince').val(), city: $('#searchCity').val(), district: $('#searchDistrict').val(), company: $('#searchCompany').val(), jobTitle: $('#searchJobTitle').val(), groupId: currentGroupId || undefined, page: currentPage, size: 10 };
+            Object.keys(params).forEach(function(k) { if (params[k] === '' || params[k] === undefined) delete params[k]; });
+            $.getJSON('/contacts/data', params).done(function(result) {
+                if (result.code === 200 && result.data) renderContacts(result.data);
+            }).fail(function() { showAlert(t('contact.loadingFailed', '加载联系人失败'), 'danger'); }).always(function() { $('#loadingOverlay').removeClass('active'); });
+        }
+
+        function renderContacts(data) {
+            var content = data.content || [], total = data.totalElements || 0, pages = data.totalPages || 0, cur = data.currentPage - 1;
+            $('#totalCount').text(total);
+            $('#contactCount').text(t('common.records', '共 {0} 条').replace('{0}', total));
+            var tbody = $('#contactTableBody').empty(), cardList = $('#contactCardList').empty();
+            if (!content.length) {
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">'+t('contact.noData','暂无数据')+'</td></tr>');
+                cardList.html('<div class="text-center text-muted py-4">'+t('contact.noData','暂无数据')+'</div>');
+            } else {
+                content.forEach(function(c) {
+                    var gn = c.group ? escapeHtml(c.group.name) : '-', dn = escapeHtml(getDisplayName(c));
+                    tbody.append('<tr><td>'+getContactAvatarHtml(c)+'</td><td><strong>'+dn+'</strong></td><td>'+getGenderText(c.gender)+'</td><td>'+escapeHtml(c.phoneMobile)+'</td><td>'+escapeHtml(c.email)+'</td><td>'+escapeHtml(c.company)+'</td><td>'+escapeHtml(c.jobTitle)+'</td><td>'+gn+'</td><td><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" onclick="editContact('+c.id+')">'+t('group.edit','编辑')+'</button><button class="btn btn-outline-danger" onclick="confirmDelete('+c.id+',\''+dn.replace(/'/g,"\\'")+'\')">'+t('admin.btn.delete','删除')+'</button></div></td></tr>');
+                    cardList.append('<div class="contact-card position-relative"><div class="card-actions btn-group btn-group-sm"><button class="btn btn-outline-primary btn-sm" onclick="editContact('+c.id+')">'+t('group.edit','编辑')+'</button><button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('+c.id+',\''+dn.replace(/'/g,"\\'")+'\')">'+t('admin.btn.delete','删除')+'</button></div><div class="d-flex align-items-center mb-2"><div class="me-3 flex-shrink-0">'+getContactAvatarHtml(c,'card')+'</div><div><h6 class="mb-1"><strong>'+dn+'</strong> '+getGenderText(c.gender)+'</h6><div><span class="badge bg-secondary">'+gn+'</span></div></div></div><div class="small text-muted">'+(c.phoneMobile?'<div>&#9742; '+escapeHtml(c.phoneMobile)+'</div>':'')+(c.email?'<div>&#9993; '+escapeHtml(c.email)+'</div>':'')+(c.company?'<div>&#127970; '+escapeHtml(c.company)+'</div>':'')+'</div></div>');
+                });
+            }
+            renderPagination(cur, pages);
+        }
+
+        function renderPagination(cur, total) {
+            var pg = $('#pagination').empty();
+            if (total <= 1) return;
+            pg.append('<li class="page-item '+(cur<=0?'disabled':'')+'"><a class="page-link" onclick="loadContacts('+(cur-1)+')">&laquo;</a></li>');
+            for (var i = Math.max(0, cur-2); i <= Math.min(total-1, cur+2); i++) pg.append('<li class="page-item '+(i===cur?'active':'')+'"><a class="page-link" onclick="loadContacts('+i+')">'+(i+1)+'</a></li>');
+            pg.append('<li class="page-item '+(cur>=total-1?'disabled':'')+'"><a class="page-link" onclick="loadContacts('+(cur+1)+')">&raquo;</a></li>');
+        }
+
+        function searchContacts() { currentGroupId=''; $('#groupList .list-group-item').removeClass('active').first().addClass('active'); loadContacts(0); }
+        function resetSearch() { $('#searchKeyword,#searchPhone,#searchProvince,#searchCity,#searchDistrict,#searchCompany,#searchJobTitle').val(''); $('#searchGroup').val(''); searchContacts(); }
+        function switchGroup(gid) { currentGroupId=gid; $('#groupList .list-group-item').removeClass('active'); if(!gid) $('#groupList .list-group-item:first').addClass('active'); else $('#groupList .list-group-item[data-group-id="'+gid+'"]').addClass('active'); loadContacts(0); }
+
+        function openAddModal() {
+            $('#contactModalTitle').text(t('modal.addContact','新增联系人'));
+            $('#contactForm')[0].reset(); $('#editContactId').val('');
+            $('#contactAvatarPreview').attr('src', getAvatarSvgDataUrl('?', 80, 32));
+            $('#inputAvatarUrl').val('');
+            $('#saveContactBtn').text(t('btn.save','保存'));
+            new bootstrap.Modal(document.getElementById('addContactModal')).show();
+        }
+
+        function editContact(id) {
+            $.getJSON('/contacts/data', {page:0,size:1}).done(function(result) {
+                if (result.code===200 && result.data) {
+                    var contact = (result.data.content||[]).find(function(c){return c.id===id;});
+                    if (contact) fillEditForm(contact);
+                    else $.ajax({url:'/contacts/'+id,method:'GET',success:function(r){if(r.code===200&&r.data)fillEditForm(r.data);}});
+                }
+            });
+        }
+
+        function fillEditForm(c) {
+            $('#contactModalTitle').text(t('modal.editContact','编辑联系人'));
+            $('#editContactId').val(c.id);
+            var fn=c.familyName||'', gn=c.givenName||'';
+            if(!fn&&!gn&&c.name){if(c.name.length===2){fn=c.name[0];gn=c.name[1];}else if(c.name.length>=3){fn=c.name[0];gn=c.name.substring(1);}else{gn=c.name;}}
+            $('#inputFamilyName').val(fn); $('#inputGivenName').val(gn);
+            $('#inputGender').val(c.gender!=null?c.gender:0);
+            $('#inputPhoneMobile').val(c.phoneMobile||''); $('#inputPhoneHome').val(c.phoneHome||''); $('#inputPhoneWork').val(c.phoneWork||'');
+            $('#inputEmail').val(c.email||''); $('#inputBirthday').val(c.birthday||''); $('#inputCompany').val(c.company||'');
+            $('#inputJobTitle').val(c.jobTitle||''); $('#inputProvince').val(c.province||''); $('#inputCity').val(c.city||'');
+            $('#inputDistrict').val(c.district||''); $('#inputAddressDetail').val(c.addressDetail||''); $('#inputNotes').val(c.notes||'');
+            $('#inputGroup').val(c.group?c.group.id:'');
+            if(c.avatarUrl) $('#contactAvatarPreview').attr('src',c.avatarUrl+'?t='+Date.now());
+            else {var dn=getDisplayName(c);$('#contactAvatarPreview').attr('src',getAvatarSvgDataUrl(getInitials(dn),80,32));}
+            $('#inputAvatarUrl').val(c.avatarUrl||'');
+            $('#saveContactBtn').text(t('btn.update','更新'));
+            new bootstrap.Modal(document.getElementById('addContactModal')).show();
+        }
+
+        $('#saveContactBtn').on('click', function() {
+            var id=$('#editContactId').val(), fn=$('#inputFamilyName').val().trim(), gn=$('#inputGivenName').val().trim();
+            if(!fn&&!gn){showAlert(t('contact.nameRequired','请至少输入姓或名'),'danger');return;}
+            var data={familyName:fn,givenName:gn,gender:parseInt($('#inputGender').val()),phoneMobile:$('#inputPhoneMobile').val(),phoneHome:$('#inputPhoneHome').val(),phoneWork:$('#inputPhoneWork').val(),email:$('#inputEmail').val(),birthday:$('#inputBirthday').val()||null,company:$('#inputCompany').val(),jobTitle:$('#inputJobTitle').val(),province:$('#inputProvince').val(),city:$('#inputCity').val(),district:$('#inputDistrict').val(),addressDetail:$('#inputAddressDetail').val(),notes:$('#inputNotes').val(),groupId:$('#inputGroup').val()?parseInt($('#inputGroup').val()):null};
+            $.ajax({url:id?'/contacts/'+id:'/contacts',method:id?'PUT':'POST',contentType:'application/json',data:JSON.stringify(data),success:function(r){if(r.code===200){showAlert(id?t('alert.updateSuccess','更新成功'):t('alert.saveSuccess','保存成功'),'success');bootstrap.Modal.getInstance(document.getElementById('addContactModal')).hide();loadContacts(currentPage);}else showAlert(r.message||t('common.failure','操作失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});
+        });
+
+        function confirmDelete(id,name){currentDeleteId=id;$('#deleteConfirmText').text(t('contact.deleteConfirm','确定要将联系人 {0} 移入回收站吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();}
+        $('#confirmDeleteBtn').on('click',function(){if(!currentDeleteId)return;$.ajax({url:'/contacts/'+currentDeleteId,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('contact.movedToRecycle','已移入回收站'),'success');bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();loadContacts(currentPage);}else showAlert(r.message||t('contact.deleteFailed','删除失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        function createGroup(){var name=prompt(t('group.createPrompt','请输入新建分组名称：'));if(!name||!name.trim())return;$.ajax({url:'/groups',method:'POST',contentType:'application/json',data:JSON.stringify({name:name.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');location.reload();}else showAlert(r.message||t('group.createFailed','创建失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        function editGroup(id,name){var n=prompt(t('group.renamePrompt','请输入新的分组名称：'),name);if(!n||!n.trim())return;$.ajax({url:'/groups/'+id,method:'PUT',contentType:'application/json',data:JSON.stringify({name:n.trim()}),success:function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');location.reload();}else showAlert(r.message||t('group.updateFailed','更新失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+        function deleteGroup(id,name){if(!confirm(t('group.deleteConfirm','确定要删除分组 "{0}" 吗？').replace('{0}',name)))return;$.ajax({url:'/groups/'+id,method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');location.reload();}else showAlert(r.message||t('group.deleteFailed','删除失败'),'danger');},error:function(x){var m=t('alert.networkError','网络错误');try{m=JSON.parse(x.responseText).message||m;}catch(e){}showAlert(m,'danger');}});}
+
+        function refreshUserAvatar(){var img=document.getElementById('currentUserAvatar');if(img)fetch('/user/avatar').then(function(r){return r.json()}).then(function(d){if(d.code===200&&d.data&&d.data.url)img.src=d.data.url+'?t='+Date.now();else img.src=getAvatarSvgDataUrl('?',40,20);}).catch(function(){img.src=getAvatarSvgDataUrl('?',40,20);});}
+
+        $('#contactAvatarInput').on('change',function(){var f=this.files[0];if(!f)return;var id=$('#editContactId').val();if(!id){showAlert(t('contact.saveAvatarFirst','请先保存联系人后再上传头像'),'warning');return;}var fd=new FormData();fd.append('file',f);$.ajax({url:'/contacts/'+id+'/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');var u=r.data&&r.data.url?r.data.url:'/contacts/'+id+'/avatar?t='+Date.now();$('#contactAvatarPreview').attr('src',u);}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        $('#avatarUploadForm').on('submit',function(e){e.preventDefault();var fd=new FormData(this);$.ajax({url:'/user/avatar',method:'POST',data:fd,processData:false,contentType:false,success:function(r){if(r.code===200){showAlert(t('contact.avatarUploaded','头像上传成功'),'success');refreshUserAvatar();bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide();}else showAlert(r.message||t('contact.avatarUploadFailed','上传失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        $('#searchKeyword,#searchPhone').on('keypress',function(e){if(e.which===13)searchContacts();});
+
+        $(document).ready(function(){initPage();refreshUserAvatar();loadGroups();loadContacts(0);});
+    </script>
+</body>
+</html>

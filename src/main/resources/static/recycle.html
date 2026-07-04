@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title.recycle">回收站 - 通讯录系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #E7F1F7, #BFD8E6 60%, #FFF2D9); min-height: 100vh; background-attachment: fixed; }
+        .container { max-width: 1000px; }
+        .page-header { border-bottom: 2px solid #e9ecef; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .recycle-table th { background-color: #f8f9fa; white-space: nowrap; }
+        .recycle-table td { vertical-align: middle; }
+        .recycle-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #dc3545; }
+        @media (max-width: 768px) { .recycle-table { display: none; } .recycle-card-list { display: block; } }
+        @media (min-width: 769px) { .recycle-card-list { display: none; } }
+        .pagination .page-link { cursor: pointer; }
+        .loading-overlay { display: none; text-align: center; padding: 2rem; }
+        .loading-overlay.active { display: block; }
+        .record-count { font-size: 0.85rem; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/contacts.html" data-i18n="app.name">通讯录系统</a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link" href="/contacts.html" data-i18n="nav.contacts">通讯录</a></li><li class="nav-item"><a class="nav-link active" href="/recycle.html" data-i18n="nav.recycle">回收站</a></li><li class="nav-item" id="navAdmin" style="display:none"><a class="nav-link" href="/admin/users.html" data-i18n="nav.admin">用户管理</a></li><li class="nav-item"><a class="nav-link" href="/user/profile.html" data-i18n="nav.profile">个人信息</a></li><li class="nav-item"><a class="nav-link" href="/logout" data-i18n="nav.logout">退出登录</a></li><li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">&#127760;</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:setLang('zh')">中文</a></li><li><a class="dropdown-item" href="javascript:setLang('en')">English</a></li></ul></li></ul></div></div></nav>
+    <div class="container mt-4">
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">&#128465; <span data-i18n="recycle.title">回收站</span></h3>
+            <div>
+                <button type="button" class="btn btn-outline-primary me-2" onclick="location.href='/contacts.html'">&#8592; <span data-i18n="btn.back">返回通讯录</span></button>
+                <button type="button" class="btn btn-danger" onclick="emptyRecycleBin()" data-i18n="btn.emptyRecycle">清空回收站</button>
+            </div>
+        </div>
+        <div id="alertContainer"></div>
+        <div class="loading-overlay" id="loadingOverlay"><div class="spinner-border text-danger" role="status"></div><p class="mt-2 text-muted" data-i18n="contact.loading">加载中...</p></div>
+        <div class="recycle-table"><div class="table-responsive"><table class="table table-hover align-middle bg-white rounded shadow-sm"><thead><tr>
+            <th data-i18n="recycle.name">姓名</th><th data-i18n="recycle.phone">手机号</th><th data-i18n="recycle.email">邮箱</th><th data-i18n="recycle.deletedAt">删除时间</th><th data-i18n="recycle.actions">操作</th>
+        </tr></thead><tbody id="recycleTableBody"><tr><td colspan="5" class="text-center text-muted py-4" data-i18n="recycle.empty">回收站为空</td></tr></tbody></table></div></div>
+        <div class="recycle-card-list" id="recycleCardList"></div>
+        <nav class="d-flex justify-content-between align-items-center mt-3"><div class="record-count" id="recordCount">共 0 条</div><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
+    </div>
+
+    <div class="modal fade" id="restoreConfirmModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.confirmRestore">确认恢复</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><p id="restoreConfirmText"></p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-success" id="confirmRestoreBtn" data-i18n="btn.confirmRestore">确认恢复</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="permanentDeleteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.permanentDelete">永久删除</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div class="alert alert-danger mb-0"><strong data-i18n="contact.permanentDelete">此操作不可恢复！</strong></div><p id="permDeleteConfirmText" class="mt-2 mb-0"></p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-danger" id="confirmPermDeleteBtn" data-i18n="btn.confirmDelete">确认永久删除</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="emptyRecycleModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.emptyRecycle">清空回收站</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div class="alert alert-danger mb-0"><strong data-i18n="contact.permanentDelete">此操作不可恢复！</strong></div><p class="mt-2" data-i18n="contact.emptyRecycle">确定要清空回收站吗？</p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-danger" id="confirmEmptyBtn" data-i18n="btn.confirmEmpty">确认清空</button></div>
+    </div></div></div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        var currentPage=0, currentRestoreId=null, currentPermDeleteId=null;
+
+        function formatDateTime(s){if(!s)return '-';var d=new Date(s);return d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+
+        function loadRecycleBin(page){
+            currentPage=page||0;$('#loadingOverlay').addClass('active');
+            $.getJSON('/contacts/recycle/data',{page:currentPage,size:10}).done(function(r){
+                if(r.code===200&&r.data)renderRecycleData(r.data);
+            }).fail(function(){showAlert(t('alert.failure','操作失败'),'danger');}).always(function(){$('#loadingOverlay').removeClass('active');});
+        }
+
+        function renderRecycleData(data){
+            var c=data.content||[],total=data.totalElements||0,pages=data.totalPages||0,cur=data.currentPage-1;
+            $('#recordCount').text(t('common.records','共 {0} 条').replace('{0}',total));
+            var tbody=$('#recycleTableBody').empty(),cardList=$('#recycleCardList').empty();
+            if(!c.length){tbody.html('<tr><td colspan="5" class="text-center text-muted py-4">'+t('recycle.empty','回收站为空')+'</td></tr>');cardList.html('<div class="text-center text-muted py-4">'+t('recycle.empty','回收站为空')+'</div>');}
+            else{c.forEach(function(x){
+                tbody.append('<tr><td><strong>'+escapeHtml(x.name)+'</strong></td><td>'+escapeHtml(x.phoneMobile||'-')+'</td><td>'+escapeHtml(x.email||'-')+'</td><td class="text-danger">'+formatDateTime(x.deletedAt)+'</td><td><div class="btn-group btn-group-sm"><button class="btn btn-outline-success" onclick="confirmRestore('+x.id+',\''+escapeHtml(x.name)+'\')">'+t('btn.restore','恢复')+'</button><button class="btn btn-outline-danger" onclick="confirmPermanentDelete('+x.id+',\''+escapeHtml(x.name)+'\')">'+t('btn.permanentDelete','永久删除')+'</button></div></td></tr>');
+                cardList.append('<div class="recycle-card"><div class="d-flex justify-content-between align-items-start"><div><h6 class="mb-1"><strong>'+escapeHtml(x.name)+'</strong></h6><div class="small text-muted">'+(x.phoneMobile?'<div>&#9742; '+escapeHtml(x.phoneMobile)+'</div>':'')+(x.email?'<div>&#9993; '+escapeHtml(x.email)+'</div>':'')+'<div class="text-danger">&#128465; '+formatDateTime(x.deletedAt)+'</div></div></div><div class="btn-group btn-group-sm"><button class="btn btn-outline-success btn-sm" onclick="confirmRestore('+x.id+',\''+escapeHtml(x.name)+'\')">'+t('btn.restore','恢复')+'</button><button class="btn btn-outline-danger btn-sm" onclick="confirmPermanentDelete('+x.id+',\''+escapeHtml(x.name)+'\')">'+t('btn.permanentDelete','永久删除')+'</button></div></div></div>');
+            });}
+            renderPagination(cur,pages);
+        }
+
+        function renderPagination(cur,total){var pg=$('#pagination').empty();if(total<=1)return;pg.append('<li class="page-item '+(cur<=0?'disabled':'')+'"><a class="page-link" onclick="loadRecycleBin('+(cur-1)+')">&laquo;</a></li>');for(var i=Math.max(0,cur-2);i<=Math.min(total-1,cur+2);i++)pg.append('<li class="page-item '+(i===cur?'active':'')+'"><a class="page-link" onclick="loadRecycleBin('+i+')">'+(i+1)+'</a></li>');pg.append('<li class="page-item '+(cur>=total-1?'disabled':'')+'"><a class="page-link" onclick="loadRecycleBin('+(cur+1)+')">&raquo;</a></li>');}
+
+        function confirmRestore(id,name){currentRestoreId=id;$('#restoreConfirmText').text(t('contact.restoreConfirm','确定要恢复联系人 {0} 吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('restoreConfirmModal')).show();}
+        $('#confirmRestoreBtn').on('click',function(){if(!currentRestoreId)return;$.ajax({url:'/contacts/'+currentRestoreId+'/restore',method:'PUT',success:function(r){if(r.code===200){showAlert(t('alert.restoreSuccess','恢复成功'),'success');bootstrap.Modal.getInstance(document.getElementById('restoreConfirmModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        function confirmPermanentDelete(id,name){currentPermDeleteId=id;$('#permDeleteConfirmText').text(t('contact.permanentDeleteConfirm','确定要永久删除联系人 {0} 吗？').replace('{0}',name));new bootstrap.Modal(document.getElementById('permanentDeleteModal')).show();}
+        $('#confirmPermDeleteBtn').on('click',function(){if(!currentPermDeleteId)return;$.ajax({url:'/contacts/'+currentPermDeleteId+'/permanent',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();loadRecycleBin(currentPage);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        function emptyRecycleBin(){new bootstrap.Modal(document.getElementById('emptyRecycleModal')).show();}
+        $('#confirmEmptyBtn').on('click',function(){$.ajax({url:'/contacts/recycle',method:'DELETE',success:function(r){if(r.code===200){showAlert(t('alert.emptySuccess','回收站已清空'),'success');bootstrap.Modal.getInstance(document.getElementById('emptyRecycleModal')).hide();loadRecycleBin(0);}else showAlert(r.message||t('alert.failure','操作失败'),'danger');},error:function(){showAlert(t('alert.networkError','网络错误'),'danger');}});});
+
+        $(document).ready(function(){initPage();loadRecycleBin(0);});
+    </script>
+</body>
+</html>

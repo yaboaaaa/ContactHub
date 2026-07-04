@@ -21,7 +21,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
     public CustomAuthenticationFailureHandler(LoginAttemptService loginAttemptService,
                                                MessageSource messageSource) {
-        super("/login?error");
+        super("/login.html?error");
         this.loginAttemptService = loginAttemptService;
         this.messageSource = messageSource;
     }

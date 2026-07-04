@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title.register">通讯录系统 - 注册</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #E7F1F7, #BFD8E6 60%, #FFF2D9);
+            min-height: 100vh;
+            background-attachment: fixed;
+        }
+        .register-card {
+            max-width: 450px;
+            width: 100%;
+            border: none;
+        }
+        .form-feedback {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            min-height: 1.25rem;
+        }
+        .form-feedback.valid { color: #198754; }
+        .form-feedback.invalid { color: #dc3545; }
+        .password-strength { height: 6px; border-radius: 3px; background-color: #e9ecef; margin-top: 0.5rem; overflow: hidden; }
+        .password-strength-bar { height: 100%; width: 0; transition: width 0.3s ease, background-color 0.3s ease; }
+        .password-strength-bar.weak { width: 25%; background-color: #dc3545; }
+        .password-strength-bar.medium { width: 50%; background-color: #fd7e14; }
+        .password-strength-bar.good { width: 75%; background-color: #0d6efd; }
+        .password-strength-bar.strong { width: 100%; background-color: #198754; }
+        .password-strength-text { font-size: 0.875rem; margin-top: 0.25rem; }
+        @media (max-width: 576px) {
+            .register-card { max-width: 100%; margin-left: 1rem; margin-right: 1rem; }
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center">
+    <div class="register-card bg-light shadow rounded p-4">
+        <h2 data-i18n="app.name" class="text-center mb-4">通讯录系统</h2>
+
+        <div id="errorArea"></div>
+
+        <form id="registerForm">
+            <div class="mb-3">
+                <label data-i18n="register.username" for="username" class="form-label">用户名</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16">
+                            <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="username" name="username" class="form-control" data-i18n-placeholder="register.placeholder.username" placeholder="请输入用户名" required autofocus />
+                </div>
+                <div id="usernameFeedback" class="form-feedback"></div>
+            </div>
+
+            <div class="mb-3">
+                <label data-i18n="register.password" for="password" class="form-label">密码</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+                            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                        </svg>
+                    </span>
+                    <input type="password" id="password" name="password" class="form-control" data-i18n-placeholder="register.placeholder.password" placeholder="请输入密码（至少6位）" required minlength="6" />
+                </div>
+                <div class="password-strength"><div id="passwordStrengthBar" class="password-strength-bar"></div></div>
+                <div id="passwordStrengthText" class="password-strength-text text-muted"></div>
+            </div>
+
+            <div class="mb-3">
+                <label data-i18n="register.email" for="email" class="form-label">邮箱（可选）</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16">
+                            <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757ZM16 4.697v7.104l-5.803-3.558L16 4.697Z"/>
+                        </svg>
+                    </span>
+                    <input type="email" id="email" name="email" class="form-control" data-i18n-placeholder="register.email.placeholder" placeholder="请输入邮箱（选填）" />
+                </div>
+            </div>
+
+            <div class="mb-3" id="captchaSection" style="display:none;">
+                <label data-i18n="register.captcha" class="form-label">验证码</label>
+                <div class="input-group">
+                    <input type="text" id="captchaInput" name="captcha" class="form-control" data-i18n-placeholder="register.placeholder.captcha" placeholder="请输入验证码" autocomplete="off">
+                    <button type="button" class="btn btn-outline-secondary" onclick="loadCaptcha()">
+                        <img id="captchaImage" src="" data-i18n-title="register.captcha" alt="验证码" style="height: 36px; cursor: pointer;">
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-grid">
+                <button data-i18n="register.btn" type="submit" class="btn btn-primary btn-lg">注 册</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-3">
+            <span data-i18n="register.hasAccount" class="text-muted">已有账号？</span>
+            <a data-i18n="register.login" href="/login.html" class="text-decoration-none">立即登录</a>
+        </div>
+        <div class="text-center mt-2">
+            <a href="javascript:setLang('zh')" class="text-decoration-none me-2">中文</a>
+            <a href="javascript:setLang('en')" class="text-decoration-none">English</a>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script>
+        function loadCaptcha() {
+            fetch('/captcha').then(function(r){return r.json()}).then(function(data){
+                if (data.enabled) {
+                    document.getElementById('captchaSection').style.display = 'block';
+                    document.getElementById('captchaImage').src = data.image;
+                } else {
+                    document.getElementById('captchaSection').style.display = 'none';
+                }
+            });
+        }
+
+        var usernameCheckTimer = null;
+        function checkUsername(username) {
+            var fb = document.getElementById('usernameFeedback');
+            if (!username || !username.trim()) { fb.textContent = ''; fb.className = 'form-feedback'; return; }
+            fb.textContent = t('register.usernameChecking', '检查中...');
+            fb.className = 'form-feedback text-muted';
+            fetch('/api/register/check-username?username=' + encodeURIComponent(username.trim()))
+                .then(function(r){return r.json()}).then(function(result){
+                    if (username !== document.getElementById('username').value) return;
+                    if (result.code === 200 && result.data === true) {
+                        fb.textContent = t('register.usernameAvailable', '用户名可用');
+                        fb.className = 'form-feedback valid';
+                    } else {
+                        fb.textContent = t('register.usernameTaken', '用户名已被占用');
+                        fb.className = 'form-feedback invalid';
+                    }
+                }).catch(function(){ fb.textContent = ''; fb.className = 'form-feedback'; });
+        }
+
+        function evaluatePassword(p) {
+            if (!p || p.length < 6) return { level: 0, label: t('register.pwdTooShort', '密码至少6位') };
+            var s = 0;
+            if (p.length >= 8) s++;
+            if (p.length >= 12) s++;
+            if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++;
+            if (/\d/.test(p)) s++;
+            if (/[^a-zA-Z0-9]/.test(p)) s++;
+            var labels = [t('register.pwdWeak','弱'), t('register.pwdMedium','中'), t('register.pwdGood','良'), t('register.pwdStrong','强')];
+            var level = Math.min(Math.floor(s / 2) + 1, 4);
+            return { level: level, label: labels[level - 1] };
+        }
+
+        function updatePasswordStrength(p) {
+            var bar = document.getElementById('passwordStrengthBar');
+            var text = document.getElementById('passwordStrengthText');
+            var r = evaluatePassword(p);
+            bar.className = 'password-strength-bar';
+            if (r.level === 1) bar.classList.add('weak');
+            else if (r.level === 2) bar.classList.add('medium');
+            else if (r.level === 3) bar.classList.add('good');
+            else if (r.level === 4) bar.classList.add('strong');
+            text.textContent = p ? r.label : '';
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var data = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                email: document.getElementById('email').value.trim()
+            };
+            var captcha = document.getElementById('captchaInput').value;
+            var url = '/api/register' + (captcha ? '?captcha=' + encodeURIComponent(captcha) : '');
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': getCsrfToken() },
+                body: JSON.stringify(data)
+            }).then(function(r){return r.json()}).then(function(result){
+                if (result.code === 200) {
+                    location.href = '/login.html?registered';
+                } else {
+                    document.getElementById('errorArea').innerHTML =
+                        '<div class="alert alert-danger d-flex align-items-center" role="alert">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-exclamation-triangle-fill me-2" viewBox="0 0 16 16">' +
+                        '<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>' +
+                        '</svg><span>' + (result.message || '注册失败') + '</span></div>';
+                }
+            }).catch(function(){
+                document.getElementById('errorArea').innerHTML =
+                    '<div class="alert alert-danger d-flex align-items-center" role="alert">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-exclamation-triangle-fill me-2" viewBox="0 0 16 16">' +
+                    '<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>' +
+                    '</svg><span>' + t('alert.networkError', '网络错误') + '</span></div>';
+            });
+        });
+
+        loadI18n().then(function() {
+            loadCaptcha();
+            document.getElementById('captchaImage').addEventListener('click', loadCaptcha);
+            var usernameInput = document.getElementById('username');
+            usernameInput.addEventListener('input', function() {
+                clearTimeout(usernameCheckTimer);
+                usernameCheckTimer = setTimeout(function() { checkUsername(usernameInput.value); }, 300);
+            });
+            usernameInput.addEventListener('blur', function() { checkUsername(this.value); });
+            document.getElementById('password').addEventListener('input', function() { updatePasswordStrength(this.value); });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title.admin">用户管理 - 通讯录系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #E7F1F7, #BFD8E6 60%, #FFF2D9); min-height: 100vh; background-attachment: fixed; }
+        .admin-wrap { max-width: 1200px; }
+        .badge-admin { background-color: #FFA6A6; }
+        .badge-user { background-color: #C4E2D3; }
+        .badge-enabled { background-color: #688770; }
+        .badge-disabled { background-color: #6c757d; }
+        .page-header { border-bottom: 2px solid #e9ecef; padding-bottom: 1rem; margin-bottom: 2rem; }
+        @media (max-width: 768px) { .table-responsive { font-size: 0.875rem; } .btn-sm { font-size: 0.75rem; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/contacts.html" data-i18n="app.name">通讯录系统</a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link" href="/contacts.html" data-i18n="nav.contacts">通讯录</a></li><li class="nav-item"><a class="nav-link" href="/recycle.html" data-i18n="nav.recycle">回收站</a></li><li class="nav-item" id="navAdmin"><a class="nav-link active" href="/admin/users.html" data-i18n="nav.admin">用户管理</a></li><li class="nav-item"><a class="nav-link" href="/user/profile.html" data-i18n="nav.profile">个人信息</a></li><li class="nav-item"><a class="nav-link" href="/logout" data-i18n="nav.logout">退出登录</a></li><li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">&#127760;</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:setLang('zh')">中文</a></li><li><a class="dropdown-item" href="javascript:setLang('en')">English</a></li></ul></li></ul></div></div></nav>
+    <div class="container mt-4 admin-wrap">
+        <div class="page-header d-flex justify-content-between align-items-center bg-white rounded shadow-sm px-4 py-3">
+            <h2 data-i18n="admin.title" class="mb-0">用户管理</h2>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal" data-i18n="btn.addUser">新增用户</button>
+        </div>
+        <div id="alertContainer"></div>
+        <div class="bg-white rounded shadow-sm p-3"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr>
+                <th data-i18n="admin.id">ID</th><th data-i18n="admin.username">用户名</th><th data-i18n="admin.email">邮箱</th><th data-i18n="admin.role">角色</th><th data-i18n="admin.status">状态</th><th data-i18n="admin.createdAt">创建时间</th><th data-i18n="admin.actions">操作</th>
+            </tr></thead>
+            <tbody id="userTableBody"></tbody>
+        </table></div></div>
+    </div>
+
+    <div class="modal fade" id="addUserModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.addUser">新增用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="addUserForm">
+            <div class="mb-3"><label class="form-label" data-i18n="admin.username">用户名</label><input type="text" class="form-control" id="username" name="username" required></div>
+            <div class="mb-3"><label class="form-label" data-i18n="register.password">密码</label><input type="password" class="form-control" id="password" name="password" required></div>
+            <div class="mb-3"><label class="form-label" data-i18n="admin.email">邮箱</label><input type="email" class="form-control" id="email" name="email" required></div>
+        </form></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-primary" id="saveUserBtn" data-i18n="btn.save">保存</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="resetPwdModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.resetPwd">重置密码</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="resetPwdForm"><input type="hidden" id="resetUserId" name="userId">
+            <div class="mb-3"><label class="form-label" data-i18n="register.password">密码</label><input type="password" class="form-control" id="resetPwdInput" name="password" data-i18n-placeholder="admin.placeholder.newPassword" placeholder="请输入新密码" required minlength="6"></div>
+        </form></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-info" id="confirmResetPwdBtn" style="color:#fff;" data-i18n="btn.confirmReset">确认重置</button></div>
+    </div></div></div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" data-i18n="modal.confirmDelete">确认删除</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><p id="deleteConfirmText" class="mb-0"></p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn.cancel">取消</button><button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-i18n="btn.confirm">确认删除</button></div>
+    </div></div></div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        function escapeHtml(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+        function refreshTable(){
+            fetch('/admin/users/data',{headers:{'X-XSRF-TOKEN':getCsrfToken()}}).then(function(r){return r.json()}).then(function(r){
+                if(r.code===200&&r.data){
+                    var tbody=document.getElementById('userTableBody');tbody.innerHTML='';
+                    r.data.forEach(function(u){
+                        var isAdmin=u.role==='ADMIN';
+                        var ct=u.createdAt?new Date(u.createdAt).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'-';
+                        var tr=document.createElement('tr');
+                        tr.innerHTML='<td>'+u.id+'</td><td>'+escapeHtml(u.username)+'</td><td>'+escapeHtml(u.email||'-')+'</td>'
+                            +(isAdmin?'<td><span class="badge badge-admin">'+t('admin.role.admin','管理员')+'</span></td>':'<td><span class="badge badge-user">'+t('admin.role.user','普通用户')+'</span></td>')
+                            +(u.enabled?'<td><span class="badge badge-enabled">'+t('admin.status.enabled','启用')+'</span></td>':'<td><span class="badge badge-disabled">'+t('admin.status.disabled','禁用')+'</span></td>')
+                            +'<td>'+ct+'</td><td>'
+                            +(isAdmin?'<div class="d-flex gap-1"><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button></div>'
+                            :'<div class="d-flex gap-1"><button class="btn btn-sm btn-warning toggle-btn" data-id="'+u.id+'" data-enabled="'+u.enabled+'">'+(u.enabled?t('admin.btn.disable','禁用'):t('admin.btn.enable','启用'))+'</button><button class="btn btn-sm btn-info reset-pwd-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'" style="color:#fff;">'+t('admin.btn.resetPwd','重置密码')+'</button><button class="btn btn-sm btn-danger delete-btn" data-id="'+u.id+'" data-username="'+escapeHtml(u.username)+'">'+t('admin.btn.delete','删除')+'</button></div>')+'</td>';
+                        tbody.appendChild(tr);
+                    });
+                    bindEvents();
+                }
+            }).catch(function(){showAlert(t('alert.failure','操作失败'),'danger');});
+        }
+
+        function bindEvents(){
+            document.querySelectorAll('.toggle-btn').forEach(function(btn){
+                btn.addEventListener('click',function(){
+                    fetch('/admin/users/'+this.dataset.id,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'enabled='+(this.dataset.enabled==='true'?'false':'true')})
+                    .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.updateSuccess','更新成功'),'success');refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
+                    .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
+                });
+            });
+            document.querySelectorAll('.reset-pwd-btn').forEach(function(btn){
+                btn.addEventListener('click',function(){document.getElementById('resetUserId').value=this.dataset.id;document.getElementById('resetPwdInput').value='';new bootstrap.Modal(document.getElementById('resetPwdModal')).show();});
+            });
+            document.querySelectorAll('.delete-btn').forEach(function(btn){
+                btn.addEventListener('click',function(){document.getElementById('deleteConfirmText').textContent=t('admin.deleteConfirm','确定要删除用户 {0} 吗？').replace('{0}',this.dataset.username);document.getElementById('confirmDeleteBtn').dataset.id=this.dataset.id;new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();});
+            });
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click',function(){
+            fetch('/admin/users/'+this.dataset.id,{method:'DELETE',headers:{'X-XSRF-TOKEN':getCsrfToken()}})
+            .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.deleteSuccess','删除成功'),'success');refreshTable();bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
+            .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
+        });
+
+        document.getElementById('confirmResetPwdBtn').addEventListener('click',function(){
+            var id=document.getElementById('resetUserId').value,pwd=document.getElementById('resetPwdInput').value;
+            if(!pwd||pwd.length<6){showAlert(t('admin.error.pwdTooShort','密码至少6位'),'warning');return;}
+            fetch('/admin/users/'+id+'/reset-password',{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:'password='+encodeURIComponent(pwd)})
+            .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.resetPwdSuccess','密码重置成功'),'success');bootstrap.Modal.getInstance(document.getElementById('resetPwdModal')).hide();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
+            .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
+        });
+
+        document.getElementById('saveUserBtn').addEventListener('click',function(){
+            var fd=new URLSearchParams(new FormData(document.getElementById('addUserForm')));
+            fetch('/admin/users',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-XSRF-TOKEN':getCsrfToken()},body:fd.toString()})
+            .then(function(r){return r.json()}).then(function(r){if(r.code===200){showAlert(t('alert.saveSuccess','保存成功'),'success');bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();document.getElementById('addUserForm').reset();refreshTable();}else showAlert(r.message||t('alert.failure','操作失败'),'danger');})
+            .catch(function(){showAlert(t('alert.networkError','网络错误'),'danger');});
+        });
+
+        $(document).ready(function(){initPage();refreshTable();});
+    </script>
+</body>
+</html>
