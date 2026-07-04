@@ -51,11 +51,9 @@
     window.initPage = function() {
         // Add footer
         var footer = document.createElement('footer');
-        footer.style.cssText = 'text-align:center;padding:1.5rem 0;color:#999;font-size:0.8rem;border-top:1px solid #eee;margin-top:2rem;';
+        footer.style.cssText = 'text-align:center;padding:1.5rem 0;color:#999;font-size:0.8rem;border-top:1px solid #eee;margin-top:2rem;clear:both;';
         footer.innerHTML = '&copy; 2026 <a href="/" style="color:#888;text-decoration:none;">ContactHub</a> &mdash; Made with &#10084; by <a href="#" style="color:#888;text-decoration:none;">yabo</a>';
-        var container = document.querySelector('.container');
-        if (container) container.parentNode.appendChild(footer);
-        else document.body.appendChild(footer);
+        document.body.appendChild(footer);
 
         loadCsrfToken().then(function() {
             ajaxSetup();
