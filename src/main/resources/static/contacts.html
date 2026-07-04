@@ -181,7 +181,10 @@
         }
 
         function getDisplayName(c) {
-            if (c.familyName || c.givenName) return (c.familyName || '') + (c.givenName || '');
+            var fn = c.familyName || '', gn = c.givenName || '';
+            if (fn || gn) {
+                return getLang() === 'en' ? gn + ' ' + fn : fn + gn;
+            }
             return c.name || '';
         }
 
