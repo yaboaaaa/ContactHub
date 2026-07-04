@@ -95,7 +95,9 @@
 
         $('#profileAvatarUploadForm').on('submit', function(e) {
             e.preventDefault();
-            $.ajax({ url: '/user/avatar', method: 'POST', data: new FormData(this), processData: false, contentType: false,
+            var fd = new FormData(this);
+            fd.append('_csrf', getCsrfToken());
+            $.ajax({ url: '/user/avatar', method: 'POST', data: fd, processData: false, contentType: false,
                 success: function(r) {
                     if (r.code === 200) { showAlert(t('contact.avatarUploaded', '头像上传成功'), 'success'); document.getElementById('profileAvatar').src = r.data.url + '?t=' + Date.now(); bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide(); }
                     else showAlert(r.message || t('contact.avatarUploadFailed', '上传失败'), 'danger');
