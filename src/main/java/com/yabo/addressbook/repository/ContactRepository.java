@@ -3,6 +3,7 @@ package com.yabo.addressbook.repository;
 import com.yabo.addressbook.entity.Contact;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,6 +16,7 @@ import java.util.Optional;
 @Repository
 public interface ContactRepository extends JpaRepository<Contact, Long>, JpaSpecificationExecutor<Contact> {
 
+    @EntityGraph(attributePaths = {"group"})
     Page<Contact> findByUserIdAndIsDeletedTrue(Long userId, Pageable pageable);
 
     List<Contact> findByUserIdAndIsDeletedTrue(Long userId);

@@ -1,18 +1,21 @@
 package com.yabo.addressbook.controller;
 
+import com.yabo.addressbook.dto.ApiResult;
 import com.yabo.addressbook.exception.BusinessException;
 import com.yabo.addressbook.service.CaptchaService;
 import com.yabo.addressbook.service.UserService;
 import jakarta.servlet.http.HttpSession;
-import com.yabo.addressbook.dto.ApiResult;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/register")
 public class RegisterController {
 
     private final UserService userService;
@@ -23,13 +26,7 @@ public class RegisterController {
         this.captchaService = captchaService;
     }
 
-    @GetMapping("/register")
-    public String showRegisterForm() {
-        return "register";
-    }
-
-    @GetMapping("/register/check-username")
-    @ResponseBody
+    @GetMapping("/check-username")
     public ApiResult<Boolean> checkUsername(@RequestParam String username) {
         if (username == null || username.trim().isEmpty()) {
             return ApiResult.success(false);
@@ -37,20 +34,19 @@ public class RegisterController {
         return ApiResult.success(!userService.existsByUsername(username.trim()));
     }
 
-    @PostMapping("/register")
-    public String register(@RequestParam String username,
-                           @RequestParam String password,
-                           @RequestParam(required = false) String email,
-                           @RequestParam(required = false) String captcha,
-                           HttpSession session,
-                           Model model) {
+    @PostMapping
+    public ApiResult<Void> register(@RequestBody Map<String, String> body,
+                                    @RequestParam(required = false) String captcha,
+                                    HttpSession session) {
+        String username = body.get("username");
+        String password = body.get("password");
+        String email = body.get("email");
         try {
             captchaService.validateCaptcha(session, captcha);
             userService.register(username, password, email);
-            return "redirect:/login?registered&username=" + username;
+            return ApiResult.success();
         } catch (BusinessException e) {
-            model.addAttribute("error", e.getMessage());
-            return "register";
+            return ApiResult.error(e.getCode(), e.getMessage());
         }
     }
 }

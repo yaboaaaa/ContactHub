@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="page.title.profile">个人信息 - 通讯录系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f7fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .page-container { max-width: 640px; margin: 0 auto; padding: 2rem 1rem; }
+        .page-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+        .page-header h3 { margin: 0; font-weight: 600; color: #1a1a1a; }
+        .page-header i { font-size: 1.5rem; color: #0d6efd; }
+        .section-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 1rem; overflow: hidden; }
+        .section-header { padding: 1rem 1.25rem 0.5rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6c757d; }
+        .section-body { padding: 0.5rem 1.25rem 1.25rem; }
+        .avatar-section { display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1.25rem; }
+        .avatar-wrapper { position: relative; margin-bottom: 0.75rem; }
+        .avatar-img { width: 88px; height: 88px; border-radius: 50%; object-fit: cover; border: 3px solid #e9ecef; }
+        .avatar-edit-btn { position: absolute; bottom: 0; right: 0; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; background: #0d6efd; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { font-size: 0.875rem; font-weight: 500; color: #495057; margin-bottom: 0.375rem; }
+        .form-control { border-radius: 8px; border: 1px solid #dee2e6; padding: 0.5rem 0.75rem; font-size: 0.9375rem; }
+        .form-control:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.15); }
+        .btn-row { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f0f0f0; }
+        .btn-save { padding: 0.5rem 1.25rem; font-weight: 500; border-radius: 8px; font-size: 0.875rem; }
+        .password-strength { height: 4px; border-radius: 2px; background-color: #e9ecef; margin-top: 0.5rem; overflow: hidden; }
+        .password-strength-bar { height: 100%; width: 0; transition: width 0.3s ease, background-color 0.3s ease; border-radius: 2px; }
+        .password-strength-bar.weak { width: 25%; background-color: #dc3545; }
+        .password-strength-bar.medium { width: 50%; background-color: #fd7e14; }
+        .password-strength-bar.good { width: 75%; background-color: #0d6efd; }
+        .password-strength-bar.strong { width: 100%; background-color: #198754; }
+        .inline-feedback { font-size: 0.8125rem; margin-top: 0.5rem; min-height: 1.25rem; }
+        .inline-feedback.valid { color: #198754; }
+        .inline-feedback.invalid { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/contacts.html" data-i18n="app.name">通讯录系统</a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarNav"><ul class="navbar-nav ms-auto"><li class="nav-item"><a class="nav-link" href="/contacts.html" data-i18n="nav.contacts">通讯录</a></li><li class="nav-item"><a class="nav-link" href="/recycle.html" data-i18n="nav.recycle">回收站</a></li><li class="nav-item" id="navAdmin" style="display:none"><a class="nav-link" href="/admin/users.html" data-i18n="nav.admin">用户管理</a></li><li class="nav-item"><a class="nav-link active" href="/user/profile.html" data-i18n="nav.profile">个人信息</a></li><li class="nav-item"><a class="nav-link" href="/logout" data-i18n="nav.logout">退出登录</a></li><li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">&#127760;</a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="javascript:setLang('zh')">中文</a></li><li><a class="dropdown-item" href="javascript:setLang('en')">English</a></li></ul></li></ul></div></div></nav>
+    <div class="page-container">
+        <div id="alertContainer"></div>
+        <div class="page-header"><i class="bi bi-person-circle"></i><h3 data-i18n="profile.title">个人信息</h3></div>
+
+        <div class="section-card"><div class="avatar-section">
+            <div class="avatar-wrapper">
+                <img id="profileAvatar" class="avatar-img" src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2788%27 height=%2788%27%3E%3Ccircle cx=%2744%27 cy=%2744%27 r=%2744%27 fill=%27%23ddd%27/%3E%3Ctext x=%2744%27 y=%2756%27 text-anchor=%27middle%27 fill=%27%23999%27 font-size=%2732%27 font-family=%27sans-serif%27%3E?%3C/text%3E%3C/svg%3E" data-i18n-title="profile.avatar" alt="头像">
+                <label class="avatar-edit-btn" for="avatarFileInput" title="更换头像"><i class="bi bi-camera-fill"></i></label>
+            </div>
+            <input type="file" id="avatarFileInput" class="d-none" accept="image/*">
+        </div></div>
+
+        <div class="section-card"><div class="section-header" data-i18n="profile.title">个人信息</div><div class="section-body">
+            <div class="form-group"><label for="profileUsername" data-i18n="register.username">用户名</label><input type="text" id="profileUsername" class="form-control"></div>
+            <div class="form-group"><label for="profileEmail" data-i18n="register.email">邮箱</label><input type="email" id="profileEmail" class="form-control" data-i18n-placeholder="register.email.placeholder" placeholder="请输入邮箱"></div>
+            <div id="profileFeedback" class="inline-feedback"></div>
+            <div class="btn-row"><button type="button" class="btn btn-primary btn-save" id="saveProfileBtn"><i class="bi bi-check-lg me-1"></i><span data-i18n="btn.save">保存</span></button></div>
+        </div></div>
+
+        <div class="section-card"><div class="section-header" data-i18n="profile.savePassword">修改密码</div><div class="section-body">
+            <div class="form-group"><label for="oldPassword" data-i18n="profile.oldPassword">原密码</label><input type="password" id="oldPassword" class="form-control" data-i18n-placeholder="profile.placeholder.oldPassword" placeholder="请输入原密码"></div>
+            <div class="form-group"><label for="newPassword" data-i18n="register.password">新密码</label><input type="password" id="newPassword" class="form-control" data-i18n-placeholder="register.placeholder.password" placeholder="请输入新密码" minlength="6">
+                <div class="password-strength"><div id="passwordStrengthBar" class="password-strength-bar"></div></div>
+                <div id="passwordStrengthText" class="password-strength-text"></div>
+            </div>
+            <div id="passwordFeedback" class="inline-feedback"></div>
+            <div class="btn-row"><button type="button" class="btn btn-primary btn-save" id="savePasswordBtn"><i class="bi bi-shield-lock me-1"></i><span data-i18n="profile.savePassword">保存密码</span></button></div>
+        </div></div>
+    </div>
+
+    <div class="modal fade" id="uploadAvatarModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="border-radius:12px;">
+        <div class="modal-header border-0 pb-0"><h5 class="modal-title" data-i18n="modal.uploadAvatar">上传头像</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="profileAvatarUploadForm" method="post" enctype="multipart/form-data">
+            <div class="text-center mb-3"><img id="uploadAvatarPreview" class="rounded-circle border" style="width:100px;height:100px;object-fit:cover;"></div>
+            <div class="mb-3"><label class="form-label" data-i18n="contact.chooseAvatar">选择头像图片</label><input type="file" class="form-control" id="profileAvatarFile" name="file" accept="image/*" required></div>
+            <div class="d-grid"><button type="submit" class="btn btn-primary" data-i18n="btn.uploadAndSave">上传并保存</button></div>
+        </form></div>
+    </div></div></div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        var avatarFileSelected = false;
+
+        document.getElementById('avatarFileInput').addEventListener('change', function() {
+            var f = this.files[0]; if (!f) return;
+            avatarFileSelected = true;
+            document.getElementById('uploadAvatarPreview').src = URL.createObjectURL(f);
+            var dt = new DataTransfer(); dt.items.add(f);
+            document.getElementById('profileAvatarFile').files = dt.files;
+            new bootstrap.Modal(document.getElementById('uploadAvatarModal')).show();
+        });
+
+        $('#profileAvatarUploadForm').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({ url: '/user/avatar', method: 'POST', data: new FormData(this), processData: false, contentType: false,
+                success: function(r) {
+                    if (r.code === 200) { showAlert(t('contact.avatarUploaded', '头像上传成功'), 'success'); document.getElementById('profileAvatar').src = r.data.url + '?t=' + Date.now(); bootstrap.Modal.getInstance(document.getElementById('uploadAvatarModal')).hide(); }
+                    else showAlert(r.message || t('contact.avatarUploadFailed', '上传失败'), 'danger');
+                }, error: function() { showAlert(t('alert.networkError', '网络错误'), 'danger'); }
+            });
+        });
+
+        document.getElementById('saveProfileBtn').addEventListener('click', function() {
+            var username = document.getElementById('profileUsername').value.trim();
+            var email = document.getElementById('profileEmail').value.trim();
+            var fb = document.getElementById('profileFeedback');
+            if (!username) { fb.textContent = t('profile.usernameRequired', '请输入用户名'); fb.className = 'inline-feedback invalid'; return; }
+            fetch('/user/profile/update?username=' + encodeURIComponent(username) + '&email=' + encodeURIComponent(email), { method: 'PUT', headers: { 'X-XSRF-TOKEN': getCsrfToken() } })
+                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    if (r.code === 200) { fb.textContent = t('profile.saveSuccess', '保存成功'); fb.className = 'inline-feedback valid'; setTimeout(function() { fb.textContent = ''; fb.className = 'inline-feedback'; }, 3000); }
+                    else { fb.textContent = r.message || t('common.failure', '操作失败'); fb.className = 'inline-feedback invalid'; }
+                }).catch(function() { fb.textContent = t('alert.networkError', '网络错误'); fb.className = 'inline-feedback invalid'; });
+        });
+
+        function evaluatePassword(p) {
+            if (!p || p.length < 6) return { level: 0, label: t('register.pwdTooShort', '密码至少6位') };
+            var s = 0; if (p.length >= 8) s++; if (p.length >= 12) s++; if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++; if (/\d/.test(p)) s++; if (/[^a-zA-Z0-9]/.test(p)) s++;
+            var labels = [t('register.pwdWeak','弱'), t('register.pwdMedium','中'), t('register.pwdGood','良'), t('register.pwdStrong','强')];
+            return { level: Math.min(Math.floor(s / 2) + 1, 4), label: labels[Math.min(Math.floor(s / 2), 3)] };
+        }
+        function updatePasswordStrength(p) {
+            var bar = document.getElementById('passwordStrengthBar'), text = document.getElementById('passwordStrengthText'), r = evaluatePassword(p);
+            bar.className = 'password-strength-bar';
+            if (r.level === 1) bar.classList.add('weak'); else if (r.level === 2) bar.classList.add('medium'); else if (r.level === 3) bar.classList.add('good'); else if (r.level === 4) bar.classList.add('strong');
+            text.textContent = p ? r.label : '';
+        }
+        document.getElementById('newPassword').addEventListener('input', function() { updatePasswordStrength(this.value); });
+
+        document.getElementById('savePasswordBtn').addEventListener('click', function() {
+            var op = document.getElementById('oldPassword').value, np = document.getElementById('newPassword').value, fb = document.getElementById('passwordFeedback');
+            if (!op || !np) { fb.textContent = t('profile.fillBoth', '请填写原密码和新密码'); fb.className = 'inline-feedback invalid'; return; }
+            if (np.length < 6) { fb.textContent = t('register.pwdTooShort', '密码至少6位'); fb.className = 'inline-feedback invalid'; return; }
+            fetch('/user/profile/password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': getCsrfToken() }, body: JSON.stringify({ oldPassword: op, newPassword: np }) })
+                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    if (r.code === 200) { fb.textContent = t('profile.saveSuccess', '保存成功'); fb.className = 'inline-feedback valid'; document.getElementById('oldPassword').value = ''; document.getElementById('newPassword').value = ''; updatePasswordStrength(''); setTimeout(function() { fb.textContent = ''; fb.className = 'inline-feedback'; }, 3000); }
+                    else { fb.textContent = (r.message && r.message.includes('原密码')) ? t('profile.oldPasswordWrong', '原密码错误') : (r.message || t('common.failure', '操作失败')); fb.className = 'inline-feedback invalid'; }
+                }).catch(function() { fb.textContent = t('alert.networkError', '网络错误'); fb.className = 'inline-feedback invalid'; });
+        });
+
+        $(document).ready(function() {
+            initPage();
+            fetch('/api/user/current').then(function(r) { return r.json(); }).then(function(r) {
+                if (r.code === 200 && r.data) {
+                    document.getElementById('profileUsername').value = r.data.username || '';
+                    document.getElementById('profileEmail').value = r.data.email || '';
+                    if (r.data.avatarUrl) document.getElementById('profileAvatar').src = r.data.avatarUrl + '?t=' + Date.now();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

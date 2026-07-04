@@ -17,7 +17,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final LoginAttemptService loginAttemptService;
 
     public CustomAuthenticationSuccessHandler(LoginAttemptService loginAttemptService) {
-        super("/contacts");
+        super("/contacts.html");
         this.loginAttemptService = loginAttemptService;
     }
 

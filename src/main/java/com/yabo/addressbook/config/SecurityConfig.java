@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
@@ -41,11 +42,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/register/check-username", "/css/**", "/js/**", "/webjars/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/uploads/**", "/captcha").permitAll()
+                .requestMatchers("/login.html", "/register.html", "/error.html", "/index.html",
+                    "/css/**", "/js/**", "/webjars/**", "/swagger-ui/**", "/v3/api-docs/**",
+                    "/swagger-ui.html", "/uploads/**", "/captcha").permitAll()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                .loginPage("/login")
+                .loginPage("/login.html")
+                .loginProcessingUrl("/login")
                 .failureHandler(failureHandler)
                 .successHandler(successHandler)
                 .permitAll()
@@ -53,10 +57,11 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .permitAll()
-                .logoutSuccessUrl("/login")
+                .logoutSuccessUrl("/login.html")
             )
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
